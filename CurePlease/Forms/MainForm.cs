@@ -1043,7 +1043,7 @@ namespace CurePlease
             var doomedMembers = activeMembers.Count(pm => PL.CanCastOn(pm) && ActiveBuffs.ContainsKey(pm.Name) && ActiveBuffs[pm.Name].Contains((short)StatusEffect.Doom));
             if(doomedMembers > 0)
             {
-                var doomCheckResult = DebuffEngine.Run(Config.GetDebuffConfig());
+                var doomCheckResult = DebuffEngine.Run(Config.GetDebuffConfig(), ActiveBuffs);
                 if (doomCheckResult != null && doomCheckResult.Spell != null)
                 {
                     CastSpell(doomCheckResult.Target, doomCheckResult.Spell);
@@ -1051,32 +1051,34 @@ namespace CurePlease
                 }
             }
 
+
             // For now we run these before deciding what to do, in case we need
             // to skip a low priority cure.
             // CURE ENGINE
             var cureResult = CureEngine.Run(Config.GetCureConfig(), enabledBoxes, highPriorityBoxes);
-            // RUN DEBUFF REMOVAL - CONVERTED TO FUNCTION SO CAN BE RUN IN MULTIPLE AREAS
-            var debuffResult = DebuffEngine.Run(Config.GetDebuffConfig());
+            var debuffResult = DebuffEngine.Run(Config.GetDebuffConfig(), ActiveBuffs);
 
-            if(cureResult != null)
-            {             
-                if (!string.IsNullOrEmpty(cureResult.Spell))
+            if(cureResult != null && !string.IsNullOrEmpty(cureResult.Spell))
+            {
+                Console.WriteLine("Cure result found!");
+                currentAction.Text = "Cure result found!";
+
+                bool lowPriority = Array.IndexOf(Data.CureTiers, cureResult.Spell) < 2;
+
+                // Only cast the spell/JA if we don't need to skip debuffs based on
+                // config and low priority.
+                if(!lowPriority || !ConfigForm.config.PrioritiseOverLowerTier || debuffResult == null)
                 {
-                    bool lowPriority = Array.IndexOf(Data.CureTiers, cureResult.Spell) < 2;
-
-                    // Only cast the spell/JA if we don't need to skip debuffs based on
-                    // config and low priority.
-                    if(!lowPriority || !ConfigForm.config.PrioritiseOverLowerTier || debuffResult == null)
+                    if (!string.IsNullOrEmpty(cureResult.JobAbility))
                     {
-                        if (!string.IsNullOrEmpty(cureResult.JobAbility))
-                        {
-                            JobAbility_Wait(cureResult.Message, cureResult.JobAbility);
-                        }
+                        currentAction.Text = "Cure JA used";
+                        JobAbility_Wait(cureResult.Message, cureResult.JobAbility);
+                    }
 
-                        CastSpell(cureResult.Target, cureResult.Spell);
-                        return;
-                    }                   
-                }
+                    currentAction.Text = "Cure casting!";
+                    CastSpell(cureResult.Target, cureResult.Spell);
+                    return;
+                }                   
             }
 
             if (debuffResult != null)
@@ -1085,108 +1087,98 @@ namespace CurePlease
                 return;
             }
 
-            // TODO: Need to run cure AND debuff engine then decide which to execute.
-            // I consider cure/cure II to be low tier once cure III gets above 700 HP.
-            //if (Array.IndexOf(Data.CureTiers, cureSpell) < 2 && ConfigForm.config.PrioritiseOverLowerTier == true)
-            //{
-            //    var debuffResult = DebuffEngine.Run();
-            //    if (debuffResult != null && debuffResult.Spell != null)
-            //    {
-            //        CastSpell(debuffResult.Target, debuffResult.Spell);
-            //        return;
-            //    }
-            //}
-
 
             // PL AUTO BUFFS
-            var plEngineResult = PLEngine.Run(Config.GetPLConfig());
-            if(plEngineResult != null)
+            //var plEngineResult = PLEngine.Run(Config.GetPLConfig());
+            EngineAction plEngineResult = null;
+            if (plEngineResult != null)
             {
-                if(!string.IsNullOrEmpty(plEngineResult.Item))
+                if (!string.IsNullOrEmpty(plEngineResult.Item))
                 {
                     Item_Wait(plEngineResult.Item);
                 }
-                            
-                if(!string.IsNullOrEmpty(plEngineResult.JobAbility))
+
+                if (!string.IsNullOrEmpty(plEngineResult.JobAbility))
                 {
-                    if(plEngineResult.JobAbility == Ability.Devotion)
+                    if (plEngineResult.JobAbility == Ability.Devotion)
                     {
                         PL.ThirdParty.SendString($"/ja \"{Ability.Devotion}\" {plEngineResult.Target}");
                     }
                     else
                     {
                         JobAbility_Wait(plEngineResult.Message, plEngineResult.JobAbility);
-                    }                            
+                    }
                 }
 
-                if(!string.IsNullOrEmpty(plEngineResult.Spell))
+                if (!string.IsNullOrEmpty(plEngineResult.Spell))
                 {
                     var target = string.IsNullOrEmpty(plEngineResult.Target) ? "<me>" : plEngineResult.Target;
                     CastSpell(target, plEngineResult.Spell);
-                }
-            }
-
-
-            // BARD SONGS
-
-            if (PL.Player.MainJob == (byte)Job.BRD && ConfigForm.config.enableSinging && !PL.HasStatus(StatusEffect.Silence) && (PL.Player.Status == 1 || PL.Player.Status == 0))
-            {
-                var songAction = SongEngine.Run(Config.GetSongConfig());
-
-                if (!string.IsNullOrEmpty(songAction.Spell))
-                {
-                    CastSpell(songAction.Target, songAction.Spell);
-                }
-            }
-
-            // GEO Stuff
-
-            else if (PL.Player.MainJob == (byte)Job.GEO && ConfigForm.config.EnableGeoSpells && !PL.HasStatus(StatusEffect.Silence) && (PL.Player.Status == 1 || PL.Player.Status == 0))
-            {
-                var geoAction = GeoEngine.Run(Config.GetGeoConfig());
-
-                // TODO: Abstract out this idea of error/ability/spell handling
-                // as it will apply to all the engines.
-                if (!string.IsNullOrEmpty(geoAction.Error))
-                {
-                    showErrorMessage(geoAction.Error);
-                }
-                else
-                {
-                    if (!string.IsNullOrEmpty(geoAction.JobAbility))
-                    {
-                        JobAbility_Wait(geoAction.JobAbility, geoAction.JobAbility);
-                    }
-
-                    if (!string.IsNullOrEmpty(geoAction.Spell))
-                    {
-                        CastSpell(geoAction.Target, geoAction.Spell);
-                    }
+                    return;
                 }
             }
 
             // Auto Casting BUFF STUFF                    
-            var buffAction = BuffEngine.Run(Config.GetBuffConfig());
+            //var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
 
-            if (buffAction != null)
-            {
-                if (!string.IsNullOrEmpty(buffAction.Error))
-                {
-                    showErrorMessage(buffAction.Error);
-                }
-                else
-                {
-                    if (!string.IsNullOrEmpty(buffAction.JobAbility))
-                    {
-                        JobAbility_Wait(buffAction.JobAbility, buffAction.JobAbility);
-                    }
+            //if (buffAction != null)
+            //{
+            //    if (!string.IsNullOrEmpty(buffAction.Error))
+            //    {
+            //        showErrorMessage(buffAction.Error);
+            //    }
+            //    else
+            //    {
+            //        if (!string.IsNullOrEmpty(buffAction.JobAbility))
+            //        {
+            //            JobAbility_Wait(buffAction.JobAbility, buffAction.JobAbility);
+            //        }
 
-                    if (!string.IsNullOrEmpty(buffAction.Spell))
-                    {
-                        CastSpell(buffAction.Target, buffAction.Spell);
-                    }
-                }
-            }
+            //        if (!string.IsNullOrEmpty(buffAction.Spell))
+            //        {
+            //            CastSpell(buffAction.Target, buffAction.Spell);
+            //            return;
+            //        }
+            //    }
+            //}
+
+            // BARD SONGS
+            //if (PL.Player.MainJob == (byte)Job.BRD && ConfigForm.config.enableSinging && !PL.HasStatus(StatusEffect.Silence) && (PL.Player.Status == 1 || PL.Player.Status == 0))
+            //{
+            //    var songAction = SongEngine.Run(Config.GetSongConfig());
+
+            //    if (!string.IsNullOrEmpty(songAction.Spell))
+            //    {
+            //        CastSpell(songAction.Target, songAction.Spell);
+            //        return;
+            //    }
+            //}
+
+            //// GEO Stuff
+            //else if (PL.Player.MainJob == (byte)Job.GEO && ConfigForm.config.EnableGeoSpells && !PL.HasStatus(StatusEffect.Silence) && (PL.Player.Status == 1 || PL.Player.Status == 0))
+            //{
+            //    var geoAction = GeoEngine.Run(Config.GetGeoConfig());
+
+            //    // TODO: Abstract out this idea of error/ability/spell handling
+            //    // as it will apply to all the engines.
+            //    if (!string.IsNullOrEmpty(geoAction.Error))
+            //    {
+            //        showErrorMessage(geoAction.Error);
+            //    }
+            //    else
+            //    {
+            //        if (!string.IsNullOrEmpty(geoAction.JobAbility))
+            //        {
+            //            JobAbility_Wait(geoAction.JobAbility, geoAction.JobAbility);
+            //        }
+
+            //        if (!string.IsNullOrEmpty(geoAction.Spell))
+            //        {
+            //            CastSpell(geoAction.Target, geoAction.Spell);
+            //            return;
+            //        }
+            //    }
+            //}
         }
         #endregion
 
@@ -1509,24 +1501,6 @@ namespace CurePlease
             BuffEngine.ToggleAutoBuff(name, Spells.Haste);
         }
 
-        private void autoPhalanxIIToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Phalanx_II);
-        }
-
-        private void autoRegenVToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Regen);
-        }
-
-        private void autoRefreshIIToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Refresh);
-        }
-
         private void hasteToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CastSpell(Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name, Spells.Haste);
@@ -1650,56 +1624,75 @@ namespace CurePlease
         private void virunaToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CastSpell(Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name, Spells.Viruna);
-        }        
+        }
+
+        // TIMED BUFFS
+        private void autoPhalanxIIToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
+            BuffEngine.ToggleTimedBuff(name, Spells.Phalanx_II);
+        }
+
+        private void autoRegenVToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
+            BuffEngine.ToggleTimedBuff(name, Spells.Regen);
+        }
+
+        private void autoRefreshIIToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
+            BuffEngine.ToggleTimedBuff(name, Spells.Refresh);
+        }
 
         private void SandstormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // TODO: Similar to haste/flurry, etc. add logic to deal with storm
             // tiers and only one at a time being selected.
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Sandstorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Sandstorm);
         }
 
         private void RainstormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Rainstorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Rainstorm);
         }
 
         private void WindstormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Windstorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Windstorm);
         }
 
         private void FirestormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Firestorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Firestorm);
         }
 
         private void HailstormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Hailstorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Hailstorm);
         }
 
         private void ThunderstormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Thunderstorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Thunderstorm);
         }
 
         private void VoidstormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Voidstorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Voidstorm);
         }
 
         private void AurorastormToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Aurorastorm);
+            BuffEngine.ToggleTimedBuff(name, Spells.Aurorastorm);
         }
 
         private void protectIVToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1826,18 +1819,6 @@ namespace CurePlease
             }
         }
 
-        private void chatLogToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ChatlogForm form4 = new ChatlogForm(this);
-            form4.Show();
-        }
-
-        private void partyBuffsdebugToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            PartyBuffs PartyBuffs = new PartyBuffs(this);
-            PartyBuffs.Show();
-        }
-
         private void refreshCharactersToolStripMenuItem_Click(object sender, EventArgs e)
         {
             IEnumerable<Process> pol = Process.GetProcessesByName("pol").Union(Process.GetProcessesByName("xiloader")).Union(Process.GetProcessesByName("edenxi"));
@@ -1936,57 +1917,6 @@ namespace CurePlease
             MessageBox.Show(ErrorMessage);
         }                      
 
-        private void updateInstances_Tick(object sender, EventArgs e)
-        {
-            if ((PL != null && PL.Player.LoginStatus == (int)LoginStatus.Loading) || (Monitored != null && Monitored.Player.LoginStatus == (int)LoginStatus.Loading))
-            {
-                return;
-            }
-
-            IEnumerable<Process> pol = Process.GetProcessesByName("pol").Union(Process.GetProcessesByName("xiloader")).Union(Process.GetProcessesByName("edenxi"));
-
-            if (pol.Count() < 1)
-            {
-            }
-            else
-            {
-                POLID.Items.Clear();
-                POLID2.Items.Clear();
-                processids.Items.Clear();
-
-                int selectedPOLID = 0;
-                int selectedPOLID2 = 0;
-
-                for (int i = 0; i < pol.Count(); i++)
-                {
-                    POLID.Items.Add(pol.ElementAt(i).MainWindowTitle);
-                    POLID2.Items.Add(pol.ElementAt(i).MainWindowTitle);
-                    processids.Items.Add(pol.ElementAt(i).Id);
-
-                    if (PL != null && PL.Player.Name != null)
-                    {
-                        if (pol.ElementAt(i).MainWindowTitle.ToLower() == PL.Player.Name.ToLower())
-                        {
-                            selectedPOLID = i;
-                            plLabel.Text = "Selected PL: " + PL.Player.Name;
-                            Text = notifyIcon1.Text = PL.Player.Name + " - " + "Cure Please v" + Application.ProductVersion;
-                        }
-                    }
-
-                    if (Monitored != null && Monitored.Player.Name != null)
-                    {
-                        if (pol.ElementAt(i).MainWindowTitle == Monitored.Player.Name)
-                        {
-                            selectedPOLID2 = i;
-                            monitoredLabel.Text = "Monitored Player: " + Monitored.Player.Name;
-                        }
-                    }
-                }
-                POLID.SelectedIndex = selectedPOLID;
-                POLID2.SelectedIndex = selectedPOLID2;
-            }
-        }
-
         private void Form1_Resize(object sender, EventArgs e)
         {
             if (FormWindowState.Minimized == WindowState)
@@ -1998,12 +1928,6 @@ namespace CurePlease
             else if (FormWindowState.Normal == WindowState)
             {
             }
-        }
-
-        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-            Show();
-            WindowState = FormWindowState.Normal;
         }
 
         private void CheckCustomActions_TickAsync(object sender, EventArgs e)
@@ -2296,17 +2220,17 @@ namespace CurePlease
 
         private void ChatLogButton_Click(object sender, EventArgs e)
         {
-            ChatlogForm form4 = new ChatlogForm(this);
+            ChatlogForm chat = new ChatlogForm(this);
 
             if (PL != null)
             {
-                form4.Show();
+                chat.Show();
             }
         }
 
         private void PartyBuffsButton_Click(object sender, EventArgs e)
         {
-            PartyBuffs PartyBuffs = new PartyBuffs(this);
+            PartyBuffs PartyBuffs = new PartyBuffs(this, BuffEngine, DebuffEngine);
             if (PL != null)
             {
                 PartyBuffs.Show();
@@ -2428,8 +2352,9 @@ namespace CurePlease
                                 var buffs = memberBuffs.Split(',').Select(str => short.Parse(str.Trim())).Where(buff => !Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
                                 var debuffs = memberBuffs.Split(',').Select(str => short.Parse(str.Trim())).Where(buff => Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
 
-                                BuffEngine.UpdateBuffs(memberName, buffs);
-                                DebuffEngine.UpdateDebuffs(memberName, debuffs);
+                                ActiveBuffs[memberName] = buffs.Union(debuffs);
+                                //BuffEngine.UpdateBuffs(memberName, buffs);
+                                //DebuffEngine.UpdateDebuffs(memberName, debuffs);
                             }                             
                         }
 
@@ -2441,6 +2366,8 @@ namespace CurePlease
                 }              
             }
 
+            // Doing it this way means we just constantly receive the next packet as soon
+            // as we finish processing one, instead of relying on a timer.
             socket.BeginReceive(new AsyncCallback(OnAddonDataReceived), socket);
         }   
 

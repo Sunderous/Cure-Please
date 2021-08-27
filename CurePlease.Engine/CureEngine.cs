@@ -255,6 +255,8 @@ namespace CurePlease.Engine
                 return underSpell;
             }
 
+            Console.WriteLine("Returning UNKNOWN CURE");
+
             return Spells.Unknown;
         }
     }

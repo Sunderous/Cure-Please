@@ -7,9 +7,6 @@ using EliteMMO.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 
 namespace CurePlease.Engine
 {
@@ -18,7 +15,7 @@ namespace CurePlease.Engine
         private EliteAPI PL { get; set; }
         private EliteAPI Monitored { get; set; }
 
-        private Dictionary<string, IEnumerable<short>> ActiveDebuffs = new Dictionary<string, IEnumerable<short>>();
+        public Dictionary<string, IEnumerable<short>> ActiveDebuffs = new Dictionary<string, IEnumerable<short>>();
 
         private IEnumerable<string> SpecifiedPartyMembers = new List<string>();
 
@@ -28,8 +25,9 @@ namespace CurePlease.Engine
             Monitored = mon;           
         }
 
-        public EngineAction Run(DebuffConfig Config)
+        public EngineAction Run(DebuffConfig Config, Dictionary<string, IEnumerable<short>> buffs)
         {
+            Console.WriteLine("Petrification: " + Config.DebuffEnabled[StatusEffect.Petrification]);
             var wakeSleepSpell = Data.WakeSleepSpells[Config.WakeSleepSpell];
 
             // PL Specific debuff removal
@@ -90,25 +88,31 @@ namespace CurePlease.Engine
             }
 
             // PARTY DEBUFF REMOVAL
-            lock (ActiveDebuffs)
-            {             
-                // First remove the highest priority debuff.
-                var priorityMember = Monitored.GetHighestPriorityDebuff(ActiveDebuffs);
-                var name = priorityMember.Name;
+            //lock (ActiveDebuffs)
+            //{             
+            // First remove the highest priority debuff.
+                var priorityMember = Monitored.GetHighestPriorityDebuff(buffs);
+                var name = priorityMember?.Name;
 
-                if (Config.PartyDebuffEnabled && (!Config.OnlySpecificMembers || SpecifiedPartyMembers.Contains(name)))
+                if (Config.PartyDebuffEnabled && priorityMember != null)
                 {
-                    if (priorityMember != null && ActiveDebuffs.ContainsKey(name) && ActiveDebuffs[name].Any())
-                    {                  
-                        // Filter out non-debuffs, and convert to short IDs. Then calculate the priority order.
-                        var debuffPriorityList = ActiveDebuffs[name].Cast<StatusEffect>().OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
+                    Console.WriteLine($"Debuffs enabled: Priority = {name}");
 
-                    
+                    if ((!Config.OnlySpecificMembers || SpecifiedPartyMembers.Contains(name)) && buffs.ContainsKey(name) && buffs[name].Any())
+                    {
+                        Console.WriteLine($"ActiveDebuffs found for: {name}");
+                        var debuffs = buffs[name].Where(buff => Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
+
+                        // Filter out non-debuffs, and convert to short IDs. Then calculate the priority order.
+                        var debuffPriorityList = debuffs.Cast<StatusEffect>().OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
+              
                         // Get the highest priority debuff we have the right spell off cooldown for.
                         var targetDebuff = debuffPriorityList.FirstOrDefault(status => Config.DebuffEnabled[status] && PL.SpellAvailable(Data.DebuffPriorities[status]));
 
                         if ((short)targetDebuff > 0)
                         {
+                            Console.WriteLine($"Target debuff found: {targetDebuff}");
+
                             // Don't try and curaga outside our party.
                             if (!priorityMember.InParty(1) && (targetDebuff == StatusEffect.Sleep || targetDebuff == StatusEffect.Sleep2))
                             {
@@ -127,7 +131,7 @@ namespace CurePlease.Engine
                         }
                     }
                 }
-            }
+            //}
 
             return null;
         }

@@ -223,7 +223,6 @@ namespace CurePlease
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.debug = new System.Windows.Forms.Button();
             this.currentAction = new System.Windows.Forms.Label();
-            this.updateInstances = new System.Windows.Forms.Timer(this.components);
             this.checkCustomActions = new System.Windows.Forms.Timer(this.components);
             this.castingLockLabel = new System.Windows.Forms.Label();
             this.Follow_BGW = new System.ComponentModel.BackgroundWorker();
@@ -1534,12 +1533,12 @@ namespace CurePlease
             // 
             // partyMembersUpdate
             // 
-            this.partyMembersUpdate.Interval = 250;
+            this.partyMembersUpdate.Interval = 100;
             this.partyMembersUpdate.Tick += new System.EventHandler(this.partyMembersUpdate_TickAsync);
             // 
             // actionTimer
             // 
-            this.actionTimer.Interval = 100;
+            this.actionTimer.Interval = 250;
             this.actionTimer.Tick += new System.EventHandler(this.actionTimer_TickAsync);
             // 
             // player6
@@ -1982,12 +1981,12 @@ namespace CurePlease
             // 
             // hpUpdates
             // 
-            this.hpUpdates.Interval = 500;
+            this.hpUpdates.Interval = 250;
             this.hpUpdates.Tick += new System.EventHandler(this.hpUpdates_Tick);
             // 
             // plPosition
             // 
-            this.plPosition.Interval = 1000;
+            this.plPosition.Interval = 500;
             this.plPosition.Tick += new System.EventHandler(this.plPosition_Tick);
             // 
             // pauseButton
@@ -2238,12 +2237,7 @@ namespace CurePlease
             this.currentAction.Size = new System.Drawing.Size(103, 13);
             this.currentAction.TabIndex = 0;
             this.currentAction.Text = "CURRENT ACTION";
-            // 
-            // updateInstances
-            // 
-            this.updateInstances.Enabled = true;
-            this.updateInstances.Interval = 60000;
-            this.updateInstances.Tick += new System.EventHandler(this.updateInstances_Tick);
+
             // 
             // checkCustomActions
             // 
@@ -2576,7 +2570,6 @@ namespace CurePlease
         private GroupBox groupBox2;
         private Label currentAction;
         private Button debug;
-        private Timer updateInstances;
         private Button player0optionsButton;
         private Timer checkCustomActions;
         private ProgressBarEx player0HP;
