@@ -1538,7 +1538,7 @@ namespace CurePlease
             // 
             // actionTimer
             // 
-            this.actionTimer.Interval = 100;
+            this.actionTimer.Interval = 200;
             this.actionTimer.Tick += new System.EventHandler(this.actionTimer_TickAsync);
             // 
             // player6
@@ -2342,6 +2342,7 @@ namespace CurePlease
             // 
             this.ProtectCasting.WorkerSupportsCancellation = true;
             this.ProtectCasting.DoWork += new System.ComponentModel.DoWorkEventHandler(this.ProtectCasting_DoWork);
+            this.ProtectCasting.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.ProtectCasting_Completed);
             // 
             // CustomCommand_Tracker
             // 

@@ -41,7 +41,7 @@ namespace CurePlease
 
         private int lastCommand = 0; 
 
-        public bool CastingBackground_Check = false;
+        public bool CastingLocked = false;
         public bool JobAbilityLock_Check = false;
 
         public string JobAbilityCMD = string.Empty;
@@ -902,7 +902,7 @@ namespace CurePlease
 
         private void CastSpell(string partyMemberName, string spellName, [Optional] string OptionalExtras)
         {
-            if(CastingBackground_Check)
+            if(CastingLocked)
             {
                 return;
             }
@@ -915,6 +915,9 @@ namespace CurePlease
 
         private void CastSpell(string partyMemberName, ISpell magic, [Optional] string OptionalExtras)
         {
+            CastingLocked = true;
+            castingLockLabel.Text = "Casting is LOCKED";
+
             castingSpell = magic.Name[0];
 
             PL.ThirdParty.SendString("/ma \"" + castingSpell + "\" " + partyMemberName);
@@ -928,17 +931,7 @@ namespace CurePlease
                 currentAction.Text = "Casting: " + castingSpell;
             }
 
-            CastingBackground_Check = true;
-
-            if (ConfigForm.config.trackCastingPackets == true && ConfigForm.config.EnableAddOn == true)
-            {
-                if (!ProtectCasting.IsBusy) { ProtectCasting.RunWorkerAsync(); }
-            }
-            else
-            {
-                castingLockLabel.Text = "Casting is LOCKED";
-                if (!ProtectCasting.IsBusy) { ProtectCasting.RunWorkerAsync(); }
-            }
+            if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) { ProtectCasting.RunWorkerAsync(); }      
         }
 
         #region Primary Logic
@@ -959,7 +952,7 @@ namespace CurePlease
             }
 
             // Skip if we're busy or immobilized.
-            if (JobAbilityLock_Check || CastingBackground_Check  || PL.HasStatus(StatusEffect.Terror) || PL.HasStatus(StatusEffect.Petrification) || PL.HasStatus(StatusEffect.Stun))
+            if (JobAbilityLock_Check || CastingLocked  || PL.HasStatus(StatusEffect.Terror) || PL.HasStatus(StatusEffect.Petrification) || PL.HasStatus(StatusEffect.Stun))
             {
                 return;
             }
@@ -1002,7 +995,7 @@ namespace CurePlease
             }
 
             // IF YOU ARE DEAD BUT RERAISE IS AVAILABLE THEN ACCEPT RAISE
-            if (ConfigForm.config.AcceptRaise == true && (PL.Player.Status == 2 || PL.Player.Status == 3))
+            if (ConfigForm.config.AcceptRaise && (PL.Player.Status == 2 || PL.Player.Status == 3))
             {
                 if (PL.Menu.IsMenuOpen && PL.Menu.HelpName == "Revival" && PL.Menu.MenuIndex == 1 && ((ConfigForm.config.AcceptRaiseOnlyWhenNotInCombat == true && Monitored.Player.Status != 1) || ConfigForm.config.AcceptRaiseOnlyWhenNotInCombat == false))
                 {
@@ -1114,7 +1107,6 @@ namespace CurePlease
                 }
             }
 
-            return;
             // Auto Casting BUFF STUFF                    
             //var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
 
@@ -1176,6 +1168,8 @@ namespace CurePlease
             //        }
             //    }
             //}
+
+            return;
         }
         #endregion
 
@@ -1407,7 +1401,7 @@ namespace CurePlease
 
         private void Item_Wait(string ItemName)
         {
-            if (CastingBackground_Check != true && JobAbilityLock_Check != true)
+            if (!CastingLocked && !JobAbilityLock_Check)
             {
                 Invoke((MethodInvoker)(async () =>
                 {
@@ -1426,7 +1420,7 @@ namespace CurePlease
 
         private void JobAbility_Wait(string JobabilityDATA, string JobAbilityName)
         {
-            if (CastingBackground_Check != true && JobAbilityLock_Check != true)
+            if (CastingLocked != true && JobAbilityLock_Check != true)
             {
                 Invoke((MethodInvoker)(async () =>
                 {
@@ -2203,16 +2197,14 @@ namespace CurePlease
             Opacity = trackBar1.Value * 0.01;
         }
 
-        private Form settings;
-
         private void OptionsButton_Click(object sender, EventArgs e)
         {
-            if ((settings == null) || settings.IsDisposed)
+            if ((Config == null) || Config.IsDisposed)
             {
-                settings = new ConfigForm();
+                Config = new ConfigForm();
             }
-            settings.Show();
 
+            Config.Show();
         }
 
         private void ChatLogButton_Click(object sender, EventArgs e)
@@ -2263,35 +2255,35 @@ namespace CurePlease
                         {
                             Invoke((MethodInvoker)(() =>
                             {
-                                CastingBackground_Check = true;
+                                CastingLocked = true;
                                 castingLockLabel.Text = "PACKET: Casting is LOCKED";
                             }));
 
-                            if (!ProtectCasting.IsBusy) { ProtectCasting.RunWorkerAsync(); }
+                            if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) { ProtectCasting.RunWorkerAsync(); }
                         }
                         else if (commands[2] == "interrupted")
                         {
-                            Invoke((MethodInvoker)(async () =>
+                            Invoke((MethodInvoker)(() =>
                             {
-                                ProtectCasting.CancelAsync();
                                 castingLockLabel.Text = "PACKET: Casting is INTERRUPTED";
-                                await Task.Delay(TimeSpan.FromSeconds(2));
-                                castingLockLabel.Text = "Casting is UNLOCKED";
-                                CastingBackground_Check = false;
+                                if (ProtectCasting.IsBusy && !ProtectCasting.CancellationPending)
+                                {
+                                    ProtectCasting.CancelAsync();
+                                }
                             }));
                         }
                         else if (commands[2] == "finished")
                         {
-
+                            //TODO: Figure out why having this async no longer works.
+                            // I think it was async in the original, but when I run it async now
+                            // it will trigger during the next casting check and "unlock"
+                            // our casting even though we're still casting something.
                             Invoke((MethodInvoker)(async () =>
                             {
-                                ProtectCasting.CancelAsync();
-                                castingLockLabel.Text = "PACKET: Casting is soon to be AVAILABLE!";
-                                await Task.Delay(TimeSpan.FromSeconds(3));
-                                castingLockLabel.Text = "Casting is UNLOCKED";
-                                currentAction.Text = string.Empty;
-                                castingSpell = string.Empty;
-                                CastingBackground_Check = false;
+                                if(ProtectCasting.IsBusy && !ProtectCasting.CancellationPending)
+                                {
+                                    ProtectCasting.CancelAsync();
+                                }                       
                             }));
                         }
                     }
@@ -2342,14 +2334,14 @@ namespace CurePlease
                         lock (ActiveBuffs)
                         {
                             var memberName = commands[2];
-                            var memberBuffs = commands[3];
+                            var memberStatuses = commands[3];
                                 
-                            if(!string.IsNullOrEmpty(memberBuffs))
+                            if(!string.IsNullOrEmpty(memberStatuses))
                             {
-                                var buffs = memberBuffs.Split(',').Select(str => short.Parse(str.Trim())).Where(buff => !Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
-                                var debuffs = memberBuffs.Split(',').Select(str => short.Parse(str.Trim())).Where(buff => Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
+                                //var buffs = memberBuffs.Split(',').Select(str => short.Parse(str.Trim())).Where(buff => !Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
+                                //var debuffs = memberBuffs.Split(',').Select(str => short.Parse(str.Trim())).Where(buff => Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
 
-                                ActiveBuffs[memberName] = buffs.Union(debuffs);
+                                ActiveBuffs[memberName] = memberStatuses.Split(',').Select(str => short.Parse(str.Trim()));
                                 //BuffEngine.UpdateBuffs(memberName, buffs);
                                 //DebuffEngine.UpdateDebuffs(memberName, debuffs);
                             }                             
@@ -2357,9 +2349,10 @@ namespace CurePlease
 
                     }                    
                 }
-                catch (Exception error1)
+                catch (Exception e)
                 {
-                    Console.WriteLine(error1.StackTrace);
+                    Console.WriteLine("ERROR DECODING ADDON PACKET: ");
+                    Console.WriteLine(e.StackTrace);
                 }              
             }
 
@@ -2392,6 +2385,12 @@ namespace CurePlease
             float castPercent = PL.CastBar.Percent;
             while (castPercent < 1)
             {
+                if(ProtectCasting.CancellationPending)
+                {
+                    e.Cancel = true;
+                    break;
+                }
+
                 Thread.Sleep(TimeSpan.FromSeconds(0.1));
                 castPercent = PL.CastBar.Percent;
                 if (lastPercent != castPercent)
@@ -2411,15 +2410,17 @@ namespace CurePlease
                     lastPercent = castPercent;
                 }
             }
+        }
 
-            Thread.Sleep(TimeSpan.FromSeconds(2));
-
-            castingSpell = string.Empty;
+        private async void ProtectCasting_Completed(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3));
 
             castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is UNLOCKED"; }));
+            currentAction.Invoke(new Action(() => { currentAction.Text = string.Empty; }));
             castingSpell = string.Empty;
 
-            CastingBackground_Check = false;
+            CastingLocked = false;
         }
 
 
