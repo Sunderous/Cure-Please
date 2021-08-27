@@ -27,7 +27,6 @@ namespace CurePlease.Engine
 
         public EngineAction Run(DebuffConfig Config, Dictionary<string, IEnumerable<short>> buffs)
         {
-            Console.WriteLine("Petrification: " + Config.DebuffEnabled[StatusEffect.Petrification]);
             var wakeSleepSpell = Data.WakeSleepSpells[Config.WakeSleepSpell];
 
             // PL Specific debuff removal
@@ -96,11 +95,8 @@ namespace CurePlease.Engine
 
                 if (Config.PartyDebuffEnabled && priorityMember != null)
                 {
-                    Console.WriteLine($"Debuffs enabled: Priority = {name}");
-
                     if ((!Config.OnlySpecificMembers || SpecifiedPartyMembers.Contains(name)) && buffs.ContainsKey(name) && buffs[name].Any())
                     {
-                        Console.WriteLine($"ActiveDebuffs found for: {name}");
                         var debuffs = buffs[name].Where(buff => Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
 
                         // Filter out non-debuffs, and convert to short IDs. Then calculate the priority order.
@@ -111,8 +107,6 @@ namespace CurePlease.Engine
 
                         if ((short)targetDebuff > 0)
                         {
-                            Console.WriteLine($"Target debuff found: {targetDebuff}");
-
                             // Don't try and curaga outside our party.
                             if (!priorityMember.InParty(1) && (targetDebuff == StatusEffect.Sleep || targetDebuff == StatusEffect.Sleep2))
                             {

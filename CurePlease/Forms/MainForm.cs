@@ -1060,9 +1060,6 @@ namespace CurePlease
 
             if(cureResult != null && !string.IsNullOrEmpty(cureResult.Spell))
             {
-                Console.WriteLine("Cure result found!");
-                currentAction.Text = "Cure result found!";
-
                 bool lowPriority = Array.IndexOf(Data.CureTiers, cureResult.Spell) < 2;
 
                 // Only cast the spell/JA if we don't need to skip debuffs based on
@@ -1071,11 +1068,9 @@ namespace CurePlease
                 {
                     if (!string.IsNullOrEmpty(cureResult.JobAbility))
                     {
-                        currentAction.Text = "Cure JA used";
                         JobAbility_Wait(cureResult.Message, cureResult.JobAbility);
                     }
 
-                    currentAction.Text = "Cure casting!";
                     CastSpell(cureResult.Target, cureResult.Spell);
                     return;
                 }                   
@@ -1089,13 +1084,13 @@ namespace CurePlease
 
 
             // PL AUTO BUFFS
-            //var plEngineResult = PLEngine.Run(Config.GetPLConfig());
-            EngineAction plEngineResult = null;
+            var plEngineResult = PLEngine.Run(Config.GetPLConfig());
             if (plEngineResult != null)
             {
                 if (!string.IsNullOrEmpty(plEngineResult.Item))
                 {
                     Item_Wait(plEngineResult.Item);
+                    return;
                 }
 
                 if (!string.IsNullOrEmpty(plEngineResult.JobAbility))
@@ -1108,6 +1103,7 @@ namespace CurePlease
                     {
                         JobAbility_Wait(plEngineResult.Message, plEngineResult.JobAbility);
                     }
+                    return;
                 }
 
                 if (!string.IsNullOrEmpty(plEngineResult.Spell))
@@ -1118,6 +1114,7 @@ namespace CurePlease
                 }
             }
 
+            return;
             // Auto Casting BUFF STUFF                    
             //var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
 
