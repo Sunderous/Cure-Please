@@ -34,7 +34,6 @@ namespace CurePlease
 
     public partial class MainForm : Form
     {
-
         private static ConfigForm Config = new ConfigForm();
 
         private string debug_MSG_show = string.Empty;
@@ -76,7 +75,11 @@ namespace CurePlease
 
         public double last_percent = 1;
 
+        // We need to track spell AND target, so that we can make sure we
+        // only update our buff timers if the spell SUCCEEDS, and not when it's
+        // interrupted/cancelled.
         public string castingSpell = string.Empty;
+        public string castingTarget = string.Empty;
 
         public int max_count = 10;
         public int spell_delay_count = 0;
@@ -919,6 +922,7 @@ namespace CurePlease
             castingLockLabel.Text = "Casting is LOCKED";
 
             castingSpell = magic.Name[0];
+            castingTarget = partyMemberName;
 
             PL.ThirdParty.SendString("/ma \"" + castingSpell + "\" " + partyMemberName);
 
@@ -931,7 +935,10 @@ namespace CurePlease
                 currentAction.Text = "Casting: " + castingSpell;
             }
 
-            if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) { ProtectCasting.RunWorkerAsync(); }      
+            if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) 
+            { 
+                ProtectCasting.RunWorkerAsync();
+            }      
         }
 
         #region Primary Logic
@@ -1126,7 +1133,6 @@ namespace CurePlease
                     if (!string.IsNullOrEmpty(buffAction.Spell))
                     {
                         CastSpell(buffAction.Target, buffAction.Spell);
-                        BuffEngine.UpdateTimer(buffAction.Target, buffAction.Spell);
                         return;
                     }
                 }
@@ -1414,6 +1420,7 @@ namespace CurePlease
                     castingLockLabel.Text = "Casting is UNLOCKED";
                     currentAction.Text = string.Empty;
                     castingSpell = string.Empty;
+                    castingTarget = string.Empty;
                     JobAbilityLock_Check = false;
                 }));
             }
@@ -1433,6 +1440,7 @@ namespace CurePlease
                     castingLockLabel.Text = "Casting is UNLOCKED";
                     currentAction.Text = string.Empty;
                     castingSpell = string.Empty;
+                    castingTarget = string.Empty;
                     JobAbilityLock_Check = false;
                 }));
             }
@@ -1443,7 +1451,6 @@ namespace CurePlease
             // TODO: Add in special logic to make sure we can't select more then
             // ONE of haste/haste2/flurry/flurry2
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            //BuffEngine.ToggleAutoBuff(name, Spells.Haste);
             BuffEngine.ToggleTimedBuff(name, Spells.Haste);
         }
 
@@ -2273,10 +2280,12 @@ namespace CurePlease
                         {
                             Invoke((MethodInvoker)(() =>
                             {
-                                if(ProtectCasting.IsBusy && !ProtectCasting.CancellationPending)
+                                BuffEngine.UpdateTimer(castingTarget, castingSpell);
+
+                                if (ProtectCasting.IsBusy && !ProtectCasting.CancellationPending)
                                 {
                                     ProtectCasting.CancelAsync();
-                                }                       
+                                }
                             }));
                         }
                     }
@@ -2416,6 +2425,7 @@ namespace CurePlease
             castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is UNLOCKED"; }));
             currentAction.Invoke(new Action(() => { currentAction.Text = string.Empty; }));
             castingSpell = string.Empty;
+            castingTarget = string.Empty;
 
             CastingLocked = false;
         }
