@@ -158,7 +158,7 @@ namespace CurePlease.Engine
 
         public bool BuffEnabled(string memberName, string spellName)
         {
-            return AutoBuffs.ContainsKey(memberName) && AutoBuffs[memberName].Any(spell => spell == spellName);
+            return TimedBuffs.ContainsKey(memberName) && TimedBuffs[memberName].Any(recastPair => recastPair.Item1 == spellName);
         }
 
         // Since we can only have one socket for the addon, we let the main form
