@@ -28,12 +28,12 @@ namespace CurePlease.Engine
         // TODO: Should this just be the exact spell we want to cast instead of the buff id?
         // Would probably be cleaner.
         // Phalanx II, Regen, Refresh, Storms
-        private Dictionary<string, IEnumerable<string>> AutoBuffs = new Dictionary<string, IEnumerable<string>>();
+        private Dictionary<string, IList<string>> AutoBuffs = new Dictionary<string, IList<string>>();
 
         // This tracks members auto-buffs outside party 1. It maps the spell we want to cast, to the next time we're supposed to cast
         // it base on our config.
         // Haste/Flurry/Protect/Shell/Adloquium
-        private Dictionary<string, IEnumerable<Tuple<string, DateTime>>> TimedBuffs = new Dictionary<string, IEnumerable<Tuple<string, DateTime>>>();
+        private Dictionary<string, IList<Tuple<string, DateTime>>> TimedBuffs = new Dictionary<string, IList<Tuple<string, DateTime>>>();
 
         public BuffEngine(EliteAPI pl, EliteAPI mon)
         {
@@ -82,18 +82,38 @@ namespace CurePlease.Engine
                     foreach(Tuple<string, DateTime> spellRecast in TimedBuffs[ptMember.Name])
                     {
                         decimal recastDelay;
-                        var spell = spellRecast.Item1.ToLower();
+                        var spell = spellRecast.Item1;
                         if(spell == Spells.Phalanx_II)
                         {
                             recastDelay = config.PhalanxRecast;
                         }
-                        else if(spell.Contains("regen"))
+                        else if(spell.Contains(Spells.Regen))
                         {
                             recastDelay = config.RegenRecast;
+                            spell = Data.RegenTiers[config.RegenTier];
                         }
-                        else if(spell.Contains("refresh"))
+                        else if(spell.Contains(Spells.Refresh))
                         {
                             recastDelay = config.RefreshRecast;
+                            spell = Data.RefreshTiers[config.RefreshTier];
+                        }
+                        else if(spell.Contains(Spells.Haste) || spell.Contains(Spells.Flurry))
+                        {
+                            recastDelay = config.HasteFlurryRecast;
+                        }
+                        else if(spell.Contains(Spells.Shell))
+                        {
+                            recastDelay = config.ShellRecast;
+                            spell = Data.ShellTiers[config.ShellTier];
+                        }
+                        else if(spell.Contains(Spells.Protect))
+                        {
+                            recastDelay = config.ProtectRecast;
+                            spell = Data.ProtectTiers[config.ProtectTier];
+                        }
+                        else if(spell == Spells.Adloquium)
+                        {
+                            recastDelay = config.AdloquiumRecast;
                         }
                         else
                         {
@@ -106,7 +126,7 @@ namespace CurePlease.Engine
                         {
                             return new EngineAction()
                             {
-                                Spell = spellRecast.Item1,
+                                Spell = spell,
                                 Target = ptMember.Name
                             };
                         }
@@ -115,24 +135,6 @@ namespace CurePlease.Engine
             }     
 
             return null;
-        }
-
-        public void ToggleAutoBuff(string memberName, string spellName)
-        {
-            if(!AutoBuffs.ContainsKey(memberName))
-            {
-                AutoBuffs.Add(memberName, new List<string>());
-            }
-
-            if(AutoBuffs[memberName].Contains(spellName))
-            {
-                // If we already had the buff enabled, remove it.
-                AutoBuffs[memberName] = AutoBuffs[memberName].Where(spell => spell != spellName);
-            }
-            else
-            {
-                AutoBuffs[memberName].Append(spellName);
-            }
         }
 
         public void ToggleTimedBuff(string memberName, string spellName)
@@ -145,11 +147,12 @@ namespace CurePlease.Engine
             if (TimedBuffs[memberName].Any(tuple => tuple.Item1 == spellName))
             {
                 // If we already had the buff enabled, remove it.
-                TimedBuffs[memberName] = TimedBuffs[memberName].Where(tuple => tuple.Item1 != spellName);
+                TimedBuffs[memberName] = TimedBuffs[memberName].Where(tuple => tuple.Item1 != spellName).ToList();
             }
             else
             {   
-                TimedBuffs[memberName].Append(Tuple.Create(spellName, DateTime.Now));
+                // Small hack to add things way in the past so we always cast them right away when first added.
+                TimedBuffs[memberName].Add(Tuple.Create(spellName, DateTime.Now.AddMinutes(-100)));
             }
         }
 
@@ -172,6 +175,35 @@ namespace CurePlease.Engine
                 {
                     ActiveBuffs.Remove(memberName);
                 }
+            }
+        }
+
+        public void UpdateTimer(string memberName, string spell)
+        {
+            if(TimedBuffs.ContainsKey(memberName))
+            {
+                // TODO: Figure out better way to handle regen/refresh/storm tiers.
+                var spellKey = spell;
+                
+                if(Data.RegenTiers.Contains(spell))
+                {
+                    spellKey = Spells.Regen;
+                }
+                else if(Data.RefreshTiers.Contains(spell))
+                {
+                    spellKey = Spells.Refresh;
+                }
+                else if(Data.ShellTiers.Contains(spell)) 
+                {
+                    spellKey = Spells.Shell;
+                }
+                else if(Data.ProtectTiers.Contains(spell))
+                {
+                    spellKey = Spells.Protect;
+                }
+
+                TimedBuffs[memberName] = TimedBuffs[memberName].Where(timer => timer.Item1 != spellKey).ToList();
+                TimedBuffs[memberName].Add(Tuple.Create(spellKey,DateTime.Now));
             }
         }
 

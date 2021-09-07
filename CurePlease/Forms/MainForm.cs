@@ -1108,28 +1108,29 @@ namespace CurePlease
             }
 
             // Auto Casting BUFF STUFF                    
-            //var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
+            var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
 
-            //if (buffAction != null)
-            //{
-            //    if (!string.IsNullOrEmpty(buffAction.Error))
-            //    {
-            //        showErrorMessage(buffAction.Error);
-            //    }
-            //    else
-            //    {
-            //        if (!string.IsNullOrEmpty(buffAction.JobAbility))
-            //        {
-            //            JobAbility_Wait(buffAction.JobAbility, buffAction.JobAbility);
-            //        }
+            if (buffAction != null)
+            {
+                if (!string.IsNullOrEmpty(buffAction.Error))
+                {
+                    showErrorMessage(buffAction.Error);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(buffAction.JobAbility))
+                    {
+                        JobAbility_Wait(buffAction.JobAbility, buffAction.JobAbility);
+                    }
 
-            //        if (!string.IsNullOrEmpty(buffAction.Spell))
-            //        {
-            //            CastSpell(buffAction.Target, buffAction.Spell);
-            //            return;
-            //        }
-            //    }
-            //}
+                    if (!string.IsNullOrEmpty(buffAction.Spell))
+                    {
+                        CastSpell(buffAction.Target, buffAction.Spell);
+                        BuffEngine.UpdateTimer(buffAction.Target, buffAction.Spell);
+                        return;
+                    }
+                }
+            }
 
             // BARD SONGS
             //if (PL.Player.MainJob == (byte)Job.BRD && ConfigForm.config.enableSinging && !PL.HasStatus(StatusEffect.Silence) && (PL.Player.Status == 1 || PL.Player.Status == 0))
@@ -1442,37 +1443,44 @@ namespace CurePlease
             // TODO: Add in special logic to make sure we can't select more then
             // ONE of haste/haste2/flurry/flurry2
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Haste);
+            //BuffEngine.ToggleAutoBuff(name, Spells.Haste);
+            BuffEngine.ToggleTimedBuff(name, Spells.Haste);
         }
 
         private void autoHasteIIToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Haste_II);
+            BuffEngine.ToggleTimedBuff(name, Spells.Haste_II);
         }
 
         private void autoAdloquiumToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Adloquium);
+            BuffEngine.ToggleTimedBuff(name, Spells.Adloquium);
         }
 
         private void autoFlurryToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Flurry);
+            BuffEngine.ToggleTimedBuff(name, Spells.Flurry);
         }
 
         private void autoFlurryIIToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Flurry_II);
+            BuffEngine.ToggleTimedBuff(name, Spells.Flurry_II);
         }
 
         private void autoProtectToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Protect);
+            BuffEngine.ToggleTimedBuff(name, Spells.Protect);
+        }
+
+        private void autoShellToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
+            BuffEngine.ToggleTimedBuff(name, Spells.Shell);
         }
 
         private void enableDebuffRemovalToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1480,17 +1488,6 @@ namespace CurePlease
             DebuffEngine.ToggleSpecifiedMember(Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name);
         }
 
-        private void autoShellToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            var name = Monitored.Party.GetPartyMembers()[playerOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Shell);
-        }
-
-        private void autoHasteToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            var name = Monitored.Party.GetPartyMembers()[autoOptionsSelected].Name;
-            BuffEngine.ToggleAutoBuff(name, Spells.Haste);
-        }
 
         private void hasteToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -2274,11 +2271,7 @@ namespace CurePlease
                         }
                         else if (commands[2] == "finished")
                         {
-                            //TODO: Figure out why having this async no longer works.
-                            // I think it was async in the original, but when I run it async now
-                            // it will trigger during the next casting check and "unlock"
-                            // our casting even though we're still casting something.
-                            Invoke((MethodInvoker)(async () =>
+                            Invoke((MethodInvoker)(() =>
                             {
                                 if(ProtectCasting.IsBusy && !ProtectCasting.CancellationPending)
                                 {
@@ -2412,6 +2405,10 @@ namespace CurePlease
             }
         }
 
+        // This is the ONLY spot that should handle unlocking our casting, or the delay we need between casts.
+        // With that logic in here, anywhere that needs to unlock our casting can simply call
+        // ProtectCasting.CancelAsync()
+        // And this will run after it's cancelled, and make sure we wait between casts and unlock our casting.
         private async void ProtectCasting_Completed(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
         {
             await Task.Delay(TimeSpan.FromSeconds(3));
