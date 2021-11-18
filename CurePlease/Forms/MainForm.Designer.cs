@@ -234,7 +234,8 @@ namespace CurePlease
             this.AddOnStatus = new System.Windows.Forms.Button();
             this.ProtectCasting = new System.ComponentModel.BackgroundWorker();
             this.EclipticTimer = new System.Windows.Forms.Timer(this.components);
-            this.CustomCommand_Tracker = new System.ComponentModel.BackgroundWorker();
+            this.cureFound = new System.Windows.Forms.Button();
+            this.logicProgress = new System.Windows.Forms.ProgressBar();
             this.party0.SuspendLayout();
             this.playerOptions.SuspendLayout();
             this.party2.SuspendLayout();
@@ -1533,12 +1534,11 @@ namespace CurePlease
             // 
             // partyMembersUpdate
             // 
-            this.partyMembersUpdate.Interval = 100;
             this.partyMembersUpdate.Tick += new System.EventHandler(this.partyMembersUpdate_TickAsync);
             // 
             // actionTimer
             // 
-            this.actionTimer.Interval = 200;
+            this.actionTimer.Interval = 750;
             this.actionTimer.Tick += new System.EventHandler(this.actionTimer_TickAsync);
             // 
             // player6
@@ -2197,7 +2197,6 @@ namespace CurePlease
             this.debugging_MSGBOX.Name = "debugging_MSGBOX";
             this.debugging_MSGBOX.Size = new System.Drawing.Size(0, 13);
             this.debugging_MSGBOX.TabIndex = 22;
-            
             // 
             // groupBox2
             // 
@@ -2237,7 +2236,6 @@ namespace CurePlease
             this.currentAction.Size = new System.Drawing.Size(103, 13);
             this.currentAction.TabIndex = 0;
             this.currentAction.Text = "CURRENT ACTION";
-
             // 
             // checkCustomActions
             // 
@@ -2321,7 +2319,6 @@ namespace CurePlease
             this.AboutButton.Text = "About";
             this.AboutButton.UseVisualStyleBackColor = false;
             this.AboutButton.Click += new System.EventHandler(this.AboutButton_Click);
-
             // 
             // AddOnStatus
             // 
@@ -2344,18 +2341,32 @@ namespace CurePlease
             this.ProtectCasting.DoWork += new System.ComponentModel.DoWorkEventHandler(this.ProtectCasting_DoWork);
             this.ProtectCasting.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.ProtectCasting_Completed);
             // 
-            // CustomCommand_Tracker
+            // cureFound
             // 
-            this.CustomCommand_Tracker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.CustomCommand_Tracker_DoWork);
-            this.CustomCommand_Tracker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.CustomCommand_Tracker_RunWorkerCompleted);
+            this.cureFound.BackColor = System.Drawing.Color.DarkRed;
+            this.cureFound.Location = new System.Drawing.Point(196, 11);
+            this.cureFound.Name = "cureFound";
+            this.cureFound.Size = new System.Drawing.Size(75, 23);
+            this.cureFound.TabIndex = 34;
+            this.cureFound.Text = "Cure Found";
+            this.cureFound.UseVisualStyleBackColor = false;
             // 
-            // Form1
+            // logicProgress
+            // 
+            this.logicProgress.Location = new System.Drawing.Point(19, 374);
+            this.logicProgress.Name = "logicProgress";
+            this.logicProgress.Size = new System.Drawing.Size(633, 23);
+            this.logicProgress.TabIndex = 35;
+            // 
+            // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.BackColor = System.Drawing.SystemColors.ActiveBorder;
-            this.ClientSize = new System.Drawing.Size(664, 382);
+            this.ClientSize = new System.Drawing.Size(664, 409);
+            this.Controls.Add(this.logicProgress);
+            this.Controls.Add(this.cureFound);
             this.Controls.Add(this.AddOnStatus);
             this.Controls.Add(this.AboutButton);
             this.Controls.Add(this.PartyBuffsButton);
@@ -2377,7 +2388,7 @@ namespace CurePlease
             this.KeyPreview = true;
             this.Margin = new System.Windows.Forms.Padding(2, 4, 2, 4);
             this.MaximizeBox = false;
-            this.Name = "Form1";
+            this.Name = "MainForm";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.Text = "Cure Please v. 2.0.0.5";
             this.TransparencyKey = System.Drawing.Color.Silver;
@@ -2611,6 +2622,7 @@ namespace CurePlease
         private Button AddOnStatus;
         private System.ComponentModel.BackgroundWorker ProtectCasting;
         private Timer EclipticTimer;
-        private System.ComponentModel.BackgroundWorker CustomCommand_Tracker;
+        private Button cureFound;
+        private ProgressBar logicProgress;
     }
 }

@@ -95,7 +95,7 @@ namespace CurePlease.Engine
                                 var actionResult = CureCalculator(target);
 
                                 // We've already determined we can accession, or already have the status.
-                                if (actionResult != null && !PL.HasStatus(StatusEffect.Accession))
+                                if (actionResult != null && !string.IsNullOrEmpty(actionResult.Spell) && !PL.HasStatus(StatusEffect.Accession))
                                 {
                                     actionResult.JobAbility = Ability.Accession;
                                 }

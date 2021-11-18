@@ -34,7 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EliteMMO.API">
-      <HintPath>..\CurePlease\bin\Debug\EliteMMO.API.dll</HintPath>
+      <HintPath>..\EliteMMO.API.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

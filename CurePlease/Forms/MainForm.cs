@@ -246,11 +246,11 @@ namespace CurePlease
                 }
             }
 
-            if (firstTime_Pause == 0)
-            {
-                Follow_BGW.RunWorkerAsync();
-                firstTime_Pause = 1;
-            }
+            //if (firstTime_Pause == 0)
+            //{
+            //    Follow_BGW.RunWorkerAsync();
+            //    firstTime_Pause = 1;
+            //}
 
             // LOAD AUTOMATIC SETTINGS
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Settings");
@@ -946,6 +946,9 @@ namespace CurePlease
         // All the main action related stuff happens in here.
         private async void actionTimer_TickAsync(object sender, EventArgs e)
         {
+
+            logicProgress.Value = 0;
+            
             // Skip if we aren't hooked into the game.
             if (PL == null || Monitored == null)
             {
@@ -1013,6 +1016,8 @@ namespace CurePlease
                     currentAction.Text = string.Empty;
                 }
             }
+
+            logicProgress.Value = 5;
     
             IEnumerable<PartyMember> activeMembers = Monitored.GetActivePartyMembers();
 
@@ -1052,10 +1057,23 @@ namespace CurePlease
             }
 
 
+            logicProgress.Value = 30;
+
             // For now we run these before deciding what to do, in case we need
             // to skip a low priority cure.
             // CURE ENGINE
             var cureResult = CureEngine.Run(Config.GetCureConfig(), enabledBoxes, highPriorityBoxes);
+
+            if(cureResult != null && cureResult.Spell != Spells.Unknown)
+            {
+                cureFound.BackColor = Color.Green;
+            }
+            else
+            {
+                cureFound.BackColor = Color.DarkRed;
+            }
+
+
             var debuffResult = DebuffEngine.Run(Config.GetDebuffConfig(), ActiveBuffs);
 
             if(cureResult != null && !string.IsNullOrEmpty(cureResult.Spell))
@@ -1082,6 +1100,7 @@ namespace CurePlease
                 return;
             }
 
+            logicProgress.Value = 60;
 
             // PL AUTO BUFFS
             var plEngineResult = PLEngine.Run(Config.GetPLConfig());
@@ -1114,6 +1133,8 @@ namespace CurePlease
                 }
             }
 
+            logicProgress.Value = 90;
+
             // Auto Casting BUFF STUFF                    
             var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
 
@@ -1133,9 +1154,10 @@ namespace CurePlease
                     if (!string.IsNullOrEmpty(buffAction.Spell))
                     {
                         CastSpell(buffAction.Target, buffAction.Spell);
-                        return;
                     }
                 }
+
+                return;
             }
 
             // BARD SONGS
@@ -1175,6 +1197,8 @@ namespace CurePlease
             //        }
             //    }
             //}
+
+            logicProgress.Value = 100;
 
             return;
         }
@@ -2428,17 +2452,6 @@ namespace CurePlease
             castingTarget = string.Empty;
 
             CastingLocked = false;
-        }
-
-
-        private void CustomCommand_Tracker_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
-        {
-
-        }
-
-        private void CustomCommand_Tracker_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
-        {
-            CustomCommand_Tracker.RunWorkerAsync();
         }
     }
 
