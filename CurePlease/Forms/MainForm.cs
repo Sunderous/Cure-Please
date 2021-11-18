@@ -11,6 +11,7 @@ namespace CurePlease
 {
     using CurePlease.Engine;
     using CurePlease.Model;
+    using CurePlease.Model.Config;
     using CurePlease.Model.Constants;
     using CurePlease.Model.Enums;
     using CurePlease.Properties;
@@ -207,6 +208,8 @@ namespace CurePlease
             notifyIcon1.BalloonTipTitle = "Cure Please v" + Application.ProductVersion;
             notifyIcon1.BalloonTipText = "CurePlease has been minimized.";
             notifyIcon1.BalloonTipIcon = ToolTipIcon.Info;
+
+            DecisionLoop_BGW.RunWorkerAsync();
         }
 
         private void setinstance_Click(object sender, EventArgs e)
@@ -227,7 +230,6 @@ namespace CurePlease
 
             plLabel.ForeColor = Color.Green;
             POLID.BackColor = Color.White;
-            plPosition.Enabled = true;
             setinstance2.Enabled = true;
             ConfigForm.config.autoFollowName = string.Empty;
 
@@ -884,24 +886,7 @@ namespace CurePlease
             {
                 playerHP.ForeColor = Color.Red;
             }
-        }
-
-        private void plPosition_Tick(object sender, EventArgs e)
-        {
-            if (PL == null || Monitored == null)
-            {
-                return;
-            }
-
-            if (PL.Player.LoginStatus != (int)LoginStatus.LoggedIn || Monitored.Player.LoginStatus != (int)LoginStatus.LoggedIn)
-            {
-                return;
-            }
-
-            plX = PL.Player.X;
-            plY = PL.Player.Y;
-            plZ = PL.Player.Z;
-        }      
+        }   
 
         private void CastSpell(string partyMemberName, string spellName, [Optional] string OptionalExtras)
         {
@@ -915,11 +900,16 @@ namespace CurePlease
             CastSpell(partyMemberName, apiSpell, OptionalExtras);
         }
 
+        private void setActionText(string text)
+        {
+            currentAction.Invoke(new Action(() => { currentAction.Text = text; }));
+        }
+
 
         private void CastSpell(string partyMemberName, ISpell magic, [Optional] string OptionalExtras)
         {
             CastingLocked = true;
-            castingLockLabel.Text = "Casting is LOCKED";
+            castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is LOCKED"; }));
 
             castingSpell = magic.Name[0];
             castingTarget = partyMemberName;
@@ -928,11 +918,11 @@ namespace CurePlease
 
             if (OptionalExtras != null)
             {
-                currentAction.Text = "Casting: " + castingSpell + " [" + OptionalExtras + "]";
+                setActionText("Casting: " + castingSpell + " [" + OptionalExtras + "]");
             }
             else
             {
-                currentAction.Text = "Casting: " + castingSpell;
+                setActionText("Casting: " + castingSpell);
             }
 
             if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) 
@@ -941,16 +931,36 @@ namespace CurePlease
             }      
         }
 
+        //private void DecisionLoop_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        //{
+
+           
+
+        //}
+
+        private void DecisionLoop_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            DecisionLoop_BGW.RunWorkerAsync();
+        }
+
         #region Primary Logic
         // This is the timer that does our decision loop.
         // All the main action related stuff happens in here.
-        private async void actionTimer_TickAsync(object sender, EventArgs e)
-        {
+        private async void actionTimer_TickAsync(object sender, EventArgs e) { }
 
-            logicProgress.Value = 0;
-            
+        private void updatePLPosition(float x, float y, float z)
+        {
+            plX = x;
+            plY = y;
+            plZ = z;
+        }
+
+        private async void DecisionLoop_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            Thread.Sleep(100);
+
             // Skip if we aren't hooked into the game.
-            if (PL == null || Monitored == null)
+            if (PL == null || Monitored == null || pauseActions)
             {
                 return;
             }
@@ -970,6 +980,8 @@ namespace CurePlease
             // Skip if we're moving, or not standing/fighting.
             if ((PL.Player.X != plX) || (PL.Player.Y != plY) || (PL.Player.Z != plZ) || ((PL.Player.Status != (uint)Status.Standing) && (PL.Player.Status != (uint)Status.Fighting)))
             {
+                updatePLPosition(PL.Player.X, PL.Player.Y, PL.Player.Z);
+                Thread.Sleep(500);
                 return;
             }
 
@@ -1017,8 +1029,6 @@ namespace CurePlease
                 }
             }
 
-            logicProgress.Value = 5;
-    
             IEnumerable<PartyMember> activeMembers = Monitored.GetActivePartyMembers();
 
             /////////////////////////// Charmed CHECK /////////////////////////////////////
@@ -1044,11 +1054,12 @@ namespace CurePlease
                 }
             }
 
+            var debuffConfig = Config.InvokeRequired ? (DebuffConfig)Config.Invoke(new Func<DebuffConfig>(() => Config.GetDebuffConfig())) : Config.GetDebuffConfig();
             /////////////////////////// DOOM CHECK /////////////////////////////////////
             var doomedMembers = activeMembers.Count(pm => PL.CanCastOn(pm) && ActiveBuffs.ContainsKey(pm.Name) && ActiveBuffs[pm.Name].Contains((short)StatusEffect.Doom));
             if(doomedMembers > 0)
             {
-                var doomCheckResult = DebuffEngine.Run(Config.GetDebuffConfig(), ActiveBuffs);
+                var doomCheckResult = DebuffEngine.Run(debuffConfig, ActiveBuffs);
                 if (doomCheckResult != null && doomCheckResult.Spell != null)
                 {
                     CastSpell(doomCheckResult.Target, doomCheckResult.Spell);
@@ -1056,25 +1067,23 @@ namespace CurePlease
                 }
             }
 
-
-            logicProgress.Value = 30;
-
             // For now we run these before deciding what to do, in case we need
             // to skip a low priority cure.
             // CURE ENGINE
-            var cureResult = CureEngine.Run(Config.GetCureConfig(), enabledBoxes, highPriorityBoxes);
+            var cureConfig = Config.InvokeRequired ? (CureConfig)Config.Invoke(new Func<CureConfig>(() => Config.GetCureConfig())) : Config.GetCureConfig();
+            var cureResult = CureEngine.Run(cureConfig, enabledBoxes, highPriorityBoxes);
 
             if(cureResult != null && cureResult.Spell != Spells.Unknown)
             {
-                cureFound.BackColor = Color.Green;
+                cureFound.Invoke(new Action(() => { cureFound.BackColor = Color.Green; }));
             }
             else
             {
-                cureFound.BackColor = Color.DarkRed;
+                cureFound.Invoke(new Action(() => { cureFound.BackColor = Color.DarkRed; }));
             }
 
 
-            var debuffResult = DebuffEngine.Run(Config.GetDebuffConfig(), ActiveBuffs);
+            var debuffResult = DebuffEngine.Run(debuffConfig, ActiveBuffs);
 
             if(cureResult != null && !string.IsNullOrEmpty(cureResult.Spell))
             {
@@ -1100,10 +1109,9 @@ namespace CurePlease
                 return;
             }
 
-            logicProgress.Value = 60;
-
             // PL AUTO BUFFS
-            var plEngineResult = PLEngine.Run(Config.GetPLConfig());
+            var plConfig = Config.InvokeRequired ? (PLConfig)Config.Invoke(new Func<PLConfig>(() => Config.GetPLConfig())) : Config.GetPLConfig();
+            var plEngineResult = PLEngine.Run(plConfig);
             if (plEngineResult != null)
             {
                 if (!string.IsNullOrEmpty(plEngineResult.Item))
@@ -1133,10 +1141,10 @@ namespace CurePlease
                 }
             }
 
-            logicProgress.Value = 90;
+            // Auto Casting BUFF STUFF
 
-            // Auto Casting BUFF STUFF                    
-            var buffAction = BuffEngine.Run(Config.GetBuffConfig(), ActiveBuffs);
+            var buffConfig = Config.InvokeRequired ? (BuffConfig)Config.Invoke(new Func<BuffConfig>(() => Config.GetBuffConfig())) : Config.GetBuffConfig();
+            var buffAction = BuffEngine.Run(buffConfig, ActiveBuffs);
 
             if (buffAction != null)
             {
@@ -1197,8 +1205,6 @@ namespace CurePlease
             //        }
             //    }
             //}
-
-            logicProgress.Value = 100;
 
             return;
         }
@@ -1460,7 +1466,7 @@ namespace CurePlease
                     castingLockLabel.Text = "Casting is LOCKED for a JA.";
                     currentAction.Text = "Using a Job Ability: " + JobabilityDATA;
                     PL.ThirdParty.SendString("/ja \"" + JobAbilityName + "\" <me>");
-                    await Task.Delay(TimeSpan.FromSeconds(2));
+                    await Task.Delay(TimeSpan.FromSeconds(1));
                     castingLockLabel.Text = "Casting is UNLOCKED";
                     currentAction.Text = string.Empty;
                     castingSpell = string.Empty;
@@ -2444,7 +2450,7 @@ namespace CurePlease
         // And this will run after it's cancelled, and make sure we wait between casts and unlock our casting.
         private async void ProtectCasting_Completed(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
         {
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await Task.Delay(TimeSpan.FromSeconds(2.5));
 
             castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is UNLOCKED"; }));
             currentAction.Invoke(new Action(() => { currentAction.Text = string.Empty; }));

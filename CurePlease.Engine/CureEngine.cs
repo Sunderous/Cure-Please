@@ -87,7 +87,6 @@ namespace CurePlease.Engine
                             // If same party as PL, curaga. Otherwise we try to accession cure.
                             if (targetParty == plParty)
                             {
-                                // TODO: Don't do this if we have no curagas enabled, prevents curing!
                                 return CuragaCalculator(target);
                             }
                             else
@@ -114,6 +113,7 @@ namespace CurePlease.Engine
             {
                 // Need to get monitored player as a PartyMember
                 PartyMember monitoredPlayer = partyByHP.FirstOrDefault(p => p.Name == Monitored.Player.Name);
+                
                 if (monitoredPlayer != default)
                 {
                     return CureCalculator(monitoredPlayer);
@@ -151,7 +151,19 @@ namespace CurePlease.Engine
                 {
                     return PickCureTier(Data.CureTiers[i], Data.CureTiers); 
                 }
-            }         
+            }
+
+            // If we don't find a cure, it might be that our minimum heal value is higher
+            // than the HP Loss, but the HPP meets the criteria to be cured.
+            // In this case we just return the result of calculating it on our lowest enabled
+            // cure to prevent not curing at all.
+            for (int i = 0; i <= 5; i++)
+            {
+                if (_config.EnabledCureTiers[i] && PL.HasMPFor(Data.CureTiers[i]))
+                {
+                    return PickCureTier(Data.CureTiers[i], Data.CureTiers);
+                }
+            }
 
             return Spells.Unknown;
         }
@@ -195,6 +207,20 @@ namespace CurePlease.Engine
                 {
                     cureSpell = Data.CuragaTiers[i];
                     break;
+                }
+
+                // If we reach the last tier, and nobody meets the HP criteria, then we pick the first
+                // curaga we have MP for.
+                if(i == 0)
+                {
+                    for(int j = 0; j <= 4; j++)
+                    {
+                        if (_config.EnabledCuragaTiers[j] && PL.HasMPFor(Data.CuragaTiers[j]))
+                        {
+                            cureSpell = Data.CuragaTiers[j];
+                            break;
+                        }
+                    }
                 }
             }
 

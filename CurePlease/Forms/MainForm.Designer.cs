@@ -194,7 +194,6 @@ namespace CurePlease
             this.setinstance2 = new System.Windows.Forms.Button();
             this.monitoredLabel = new System.Windows.Forms.Label();
             this.hpUpdates = new System.Windows.Forms.Timer(this.components);
-            this.plPosition = new System.Windows.Forms.Timer(this.components);
             this.pauseButton = new System.Windows.Forms.Button();
             this.toolTips = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox1 = new System.Windows.Forms.CheckBox();
@@ -226,6 +225,7 @@ namespace CurePlease
             this.checkCustomActions = new System.Windows.Forms.Timer(this.components);
             this.castingLockLabel = new System.Windows.Forms.Label();
             this.Follow_BGW = new System.ComponentModel.BackgroundWorker();
+            this.DecisionLoop_BGW = new System.ComponentModel.BackgroundWorker();
             this.OptionsButton = new System.Windows.Forms.Button();
             this.ChatLogButton = new System.Windows.Forms.Button();
             this.PartyBuffsButton = new System.Windows.Forms.Button();
@@ -1984,11 +1984,6 @@ namespace CurePlease
             this.hpUpdates.Interval = 250;
             this.hpUpdates.Tick += new System.EventHandler(this.hpUpdates_Tick);
             // 
-            // plPosition
-            // 
-            this.plPosition.Interval = 500;
-            this.plPosition.Tick += new System.EventHandler(this.plPosition_Tick);
-            // 
             // pauseButton
             // 
             this.pauseButton.BackColor = System.Drawing.SystemColors.Menu;
@@ -2256,6 +2251,11 @@ namespace CurePlease
             this.Follow_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.Follow_BGW_DoWork);
             this.Follow_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.Follow_BGW_RunWorkerCompleted);
             // 
+            // DecisionLoop_BGW
+            // 
+            this.DecisionLoop_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.DecisionLoop_BGW_DoWork);
+            this.DecisionLoop_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.DecisionLoop_BGW_RunWorkerCompleted);
+            // 
             // OptionsButton
             // 
             this.OptionsButton.AutoSize = true;
@@ -2484,7 +2484,6 @@ namespace CurePlease
         private System.Windows.Forms.CheckBox player8priority;
         private System.Windows.Forms.CheckBox player7priority;
         private System.Windows.Forms.CheckBox player6priority;
-        private System.Windows.Forms.Timer plPosition;
         private System.Windows.Forms.ContextMenuStrip playerOptions;
         private System.Windows.Forms.ToolStripMenuItem paralynaToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
@@ -2605,6 +2604,7 @@ namespace CurePlease
         private TrackBar trackBar1;
         private Label castingLockLabel;
         private System.ComponentModel.BackgroundWorker Follow_BGW;
+        private System.ComponentModel.BackgroundWorker DecisionLoop_BGW;
         private Button OptionsButton;
         private Button ChatLogButton;
         private Button PartyBuffsButton;
