@@ -158,7 +158,6 @@ namespace CurePlease
             this.player13 = new System.Windows.Forms.Label();
             this.player12 = new System.Windows.Forms.Label();
             this.partyMembersUpdate = new System.Windows.Forms.Timer(this.components);
-            this.actionTimer = new System.Windows.Forms.Timer(this.components);
             this.player6 = new System.Windows.Forms.Label();
             this.player7 = new System.Windows.Forms.Label();
             this.player8 = new System.Windows.Forms.Label();
@@ -1536,11 +1535,6 @@ namespace CurePlease
             // 
             this.partyMembersUpdate.Tick += new System.EventHandler(this.partyMembersUpdate_TickAsync);
             // 
-            // actionTimer
-            // 
-            this.actionTimer.Interval = 750;
-            this.actionTimer.Tick += new System.EventHandler(this.actionTimer_TickAsync);
-            // 
             // player6
             // 
             this.player6.AutoSize = true;
@@ -2449,7 +2443,6 @@ namespace CurePlease
         private System.Windows.Forms.Label player13;
         private System.Windows.Forms.Label player12;
         private System.Windows.Forms.Timer partyMembersUpdate;
-        private System.Windows.Forms.Timer actionTimer;
         private System.Windows.Forms.Label player6;
         private System.Windows.Forms.Label player7;
         private System.Windows.Forms.Label player8;

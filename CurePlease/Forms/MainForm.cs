@@ -360,7 +360,6 @@ namespace CurePlease
             monitoredLabel.ForeColor = Color.Green;
             POLID2.BackColor = Color.White;
             partyMembersUpdate.Enabled = true;
-            actionTimer.Enabled = true;
             pauseButton.Enabled = true;
             hpUpdates.Enabled = true;
 
@@ -369,7 +368,6 @@ namespace CurePlease
                 pauseActions = true;
                 pauseButton.Text = "Loaded, Paused!";
                 pauseButton.ForeColor = Color.Red;
-                actionTimer.Enabled = false;
             }
             else
             {
@@ -473,7 +471,6 @@ namespace CurePlease
                         pauseButton.Text = "Zoned, paused.";
                         pauseButton.ForeColor = Color.Red;
                         pauseActions = true;
-                        actionTimer.Enabled = false;
                     }
                 }
                 else
@@ -933,22 +930,7 @@ namespace CurePlease
             }      
         }
 
-        //private void DecisionLoop_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
-        //{
-
-           
-
-        //}
-
-        private void DecisionLoop_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
-        {
-            DecisionLoop_BGW.RunWorkerAsync();
-        }
-
         #region Primary Logic
-        // This is the timer that does our decision loop.
-        // All the main action related stuff happens in here.
-        private async void actionTimer_TickAsync(object sender, EventArgs e) { }
 
         private void updatePLPosition(float x, float y, float z)
         {
@@ -1008,7 +990,6 @@ namespace CurePlease
             {
                 pauseButton.Text = "Paused!";
                 pauseButton.ForeColor = Color.Red;
-                actionTimer.Enabled = false;
                 ActiveBuffs.Clear();
                 pauseActions = true;
                 if (ConfigForm.config.FFXIDefaultAutoFollow == false)
@@ -1209,6 +1190,11 @@ namespace CurePlease
             //}
 
             return;
+        }
+
+        private void DecisionLoop_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            DecisionLoop_BGW.RunWorkerAsync();
         }
         #endregion
 
@@ -1749,7 +1735,6 @@ namespace CurePlease
             {
                 pauseButton.Text = "Paused!";
                 pauseButton.ForeColor = Color.Red;
-                actionTimer.Enabled = false;
                 ActiveBuffs.Clear();
                 pauseActions = true;
                 if (ConfigForm.config.FFXIDefaultAutoFollow == false)
@@ -1761,7 +1746,6 @@ namespace CurePlease
             {
                 pauseButton.Text = "Pause";
                 pauseButton.ForeColor = Color.Black;
-                actionTimer.Enabled = true;
                 pauseActions = false;
 
                 if (ConfigForm.config.MinimiseonStart == true && WindowState != FormWindowState.Minimized)
@@ -1940,7 +1924,6 @@ namespace CurePlease
             pauseActions = true;
             pauseButton.Text = "Error!";
             pauseButton.ForeColor = Color.Red;
-            actionTimer.Enabled = false;
             MessageBox.Show(ErrorMessage);
         }                      
 
@@ -1982,7 +1965,6 @@ namespace CurePlease
                             {
                                 pauseButton.Text = "Paused!";
                                 pauseButton.ForeColor = Color.Red;
-                                actionTimer.Enabled = false;
                                 ActiveBuffs.Clear();
                                 pauseActions = true;
                                 if (ConfigForm.config.FFXIDefaultAutoFollow == false)
@@ -1994,7 +1976,6 @@ namespace CurePlease
                             {
                                 pauseButton.Text = "Pause";
                                 pauseButton.ForeColor = Color.Black;
-                                actionTimer.Enabled = true;
                                 pauseActions = false;
                             }
                             else if ((Monitored.ThirdParty.ConsoleGetArg(1) == "toggle") && PL.Player.Name.ToLower() == Monitored.ThirdParty.ConsoleGetArg(2).ToLower())
@@ -2012,7 +1993,6 @@ namespace CurePlease
                             {
                                 pauseButton.Text = "Paused!";
                                 pauseButton.ForeColor = Color.Red;
-                                actionTimer.Enabled = false;
                                 ActiveBuffs.Clear();
                                 pauseActions = true;
                                 if (ConfigForm.config.FFXIDefaultAutoFollow == false)
@@ -2024,7 +2004,6 @@ namespace CurePlease
                             {
                                 pauseButton.Text = "Pause";
                                 pauseButton.ForeColor = Color.Black;
-                                actionTimer.Enabled = true;
                                 pauseActions = false;
                             }
                             else if (Monitored.ThirdParty.ConsoleGetArg(1) == "toggle")
@@ -2334,7 +2313,6 @@ namespace CurePlease
                             {
                                 pauseButton.Text = "Pause";
                                 pauseButton.ForeColor = Color.Black;
-                                actionTimer.Enabled = true;
                                 pauseActions = false;
                             }));
                         }
@@ -2345,7 +2323,6 @@ namespace CurePlease
 
                                 pauseButton.Text = "Paused!";
                                 pauseButton.ForeColor = Color.Red;
-                                actionTimer.Enabled = false;
                                 ActiveBuffs.Clear();
                                 pauseActions = true;
                                 if (ConfigForm.config.FFXIDefaultAutoFollow == false)

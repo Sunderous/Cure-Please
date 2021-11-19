@@ -25,7 +25,6 @@ namespace CurePlease.Engine
         public EngineAction Run(CureConfig Config, bool[] enabledMembers, bool[] highPriorityMembers)
         {
             _config = Config;
-
             IEnumerable<PartyMember> partyByHP = Monitored.GetActivePartyMembers().OrderBy(member => member.CurrentHPP);
 
             /////////////////////////// PL CURE //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +69,7 @@ namespace CurePlease.Engine
                         // to AOE a party where we can't reach any of the injured members.
                         if (partyByHP.Count(pm => pm.InParty(party) && enabledMembers[pm.MemberNumber]) > 0)
                         {
-                            if (partyByHP.Count(pm => pm.InParty(party) && pm.CurrentHPP < Config.CuragaHealthPercent && PL.CanCastOn(pm)) > 0)
+                            if (partyByHP.Count(pm => pm.InParty(party) && pm.CurrentHPP < _config.CuragaHealthPercent && PL.CanCastOn(pm)) > 0)
                             {
                                 targetParty = party;
                             }
@@ -212,26 +211,26 @@ namespace CurePlease.Engine
                 Target = member.Name
             };
 
-            for (int i = 4; i <= 0; i--)
+            for (int i = 4; i >= 0; i--)
             {
                 if (_config.EnabledCuragaTiers[i] && hpLoss >= _config.CuragaTierThresholds[i] && PL.HasMPFor(Data.CuragaTiers[i]))
                 {
                     cureSpell = Data.CuragaTiers[i];
                     break;
                 }
+            }
 
-                // If we reach the last tier, and nobody meets the HP criteria, then we pick the first
-                // curaga we have MP for.
-                if(i == 0)
+            // If we reach the last tier, and nobody meets the HP criteria, then we pick the first
+            // curaga we have MP for.
+            if (cureSpell == Spells.Unknown)
+            {
+                for (int i = 0; i <= 4; i++)
                 {
-                    for(int j = 0; j <= 4; j++)
+                    if (_config.EnabledCuragaTiers[i] && PL.HasMPFor(Data.CuragaTiers[i]))
                     {
-                        if (_config.EnabledCuragaTiers[j] && PL.HasMPFor(Data.CuragaTiers[j]))
-                        {
-                            cureSpell = Data.CuragaTiers[j];
-                            break;
-                        }
-                    }
+                        cureSpell = Data.CuragaTiers[i];
+                        break;
+                    }          
                 }
             }
 
