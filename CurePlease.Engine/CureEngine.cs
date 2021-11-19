@@ -31,19 +31,19 @@ namespace CurePlease.Engine
             /////////////////////////// PL CURE //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             // TODO: Test this! Pretty sure your own character is always party member index 0.
-            if (PL.Player.HP > 0 && (PL.Player.HPP <= Config.MonitoredCurePercentage) && Config.EnableOutOfPartyHealing && !PL.SamePartyAs(Monitored))
-            {
-                var plAsPartyMember = PL.Party.GetPartyMember(0);
-                return CureCalculator(plAsPartyMember);
-            }
+            //if (PL.Player.HP > 0 && (PL.Player.HPP <= Config.MonitoredCurePercentage) && Config.EnableOutOfPartyHealing && !PL.SamePartyAs(Monitored))
+            //{
+            //    var plAsPartyMember = PL.Party.GetPartyMember(0);
+            //    return CureCalculator(plAsPartyMember);
+            //}
 
             /////////////////////////// CURAGA //////////////////////////////////////////////////////////////////////////////////////////////////////////////////                                    
-            if (Config.EnabledCuragaTiers.Any())
+            if (_config.EnabledCuragaTiers.Any())
             {
                 int plParty = PL.GetPartyRelativeTo(Monitored);
 
                 // Order parties that qualify for AOE cures by average missing HP.
-                var partyNeedsAoe = Monitored.PartyNeedsAoeCure(Config.CuragaMinPlayers, Config.CuragaHealthPercent).OrderBy(partyNumber => Monitored.AverageHpLossForParty(partyNumber));
+                var partyNeedsAoe = Monitored.PartyNeedsAoeCure(_config.CuragaMinPlayers, _config.CuragaHealthPercent).OrderByDescending(partyNumber => Monitored.AverageHpLossForParty(partyNumber));
 
                 // If PL is in same alliance, and there's at least 1 party that needs an AOE cure.
                 // Parties are ordered by most average missing HP.
@@ -87,7 +87,14 @@ namespace CurePlease.Engine
                             // If same party as PL, curaga. Otherwise we try to accession cure.
                             if (targetParty == plParty)
                             {
-                                return CuragaCalculator(target);
+                                var actionResult = CuragaCalculator(target);
+                                
+                                // TODO: Why is this Curaga calculation always resulting in null actions?!
+                                if(actionResult != null)
+                                {
+                                    return actionResult;
+                                }
+                                //return CuragaCalculator(target);
                             }
                             else
                             {
@@ -99,7 +106,11 @@ namespace CurePlease.Engine
                                     actionResult.JobAbility = Ability.Accession;
                                 }
 
-                                return actionResult;
+                                if(actionResult != null)
+                                {
+                                    return actionResult;
+                                }
+                                //return actionResult;
                             }
                         }
                     }

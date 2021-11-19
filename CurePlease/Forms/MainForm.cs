@@ -925,6 +925,8 @@ namespace CurePlease
                 setActionText("Casting: " + castingSpell);
             }
 
+            // TODO: This very rarely crashes saying that ProtectCasting is still running
+            // yet it tries to call RunAsyn() again. FIgure out if more safeguards possible.
             if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) 
             { 
                 ProtectCasting.RunWorkerAsync();
