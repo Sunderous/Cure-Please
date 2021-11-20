@@ -1444,23 +1444,28 @@ namespace CurePlease
             }
         }
 
+        // We want this to run on the same thread as the Decision Loop BGW that calls it.
+        // That way, when we go to accession + cure, it will properly use the JA and cast
+        // the spell in the same iteration the way we would expect. It makes the whole action
+        // an atomic decision instead of usin the JA in the background, and (if race condition is hit)
+        // relying on the NEXT decision loop to pick the cure again.
         private void JobAbility_Wait(string JobabilityDATA, string JobAbilityName)
         {
+            
             if (CastingLocked != true && JobAbilityLock_Check != true)
             {
-                Invoke((MethodInvoker)(async () =>
-                {
-                    JobAbilityLock_Check = true;
-                    castingLockLabel.Text = "Casting is LOCKED for a JA.";
-                    currentAction.Text = "Using a Job Ability: " + JobabilityDATA;
-                    PL.ThirdParty.SendString("/ja \"" + JobAbilityName + "\" <me>");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    castingLockLabel.Text = "Casting is UNLOCKED";
-                    currentAction.Text = string.Empty;
-                    castingSpell = string.Empty;
-                    castingTarget = string.Empty;
-                    JobAbilityLock_Check = false;
-                }));
+                JobAbilityLock_Check = true;
+                castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is LOCKED for JA"; }));
+                currentAction.Invoke(new Action(() => { currentAction.Text = "Using a Job Ability: " + JobabilityDATA; }));
+                PL.ThirdParty.SendString("/ja \"" + JobAbilityName + "\" <me>");
+                // TODO: Make the JA, casting, and loop delays configurable in case other systems/locations don't quite work
+                // the same, or someone doesn't want to use JAZero.
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+                castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is UNLOCKED"; }));
+                currentAction.Invoke(new Action(() => { currentAction.Text = string.Empty; }));
+                castingSpell = string.Empty;
+                castingTarget = string.Empty;
+                JobAbilityLock_Check = false;
             }
         }
 
@@ -2266,17 +2271,21 @@ namespace CurePlease
                     // MessageBox.Show(commands[1] + " " + commands[2]);
                     if (commands[1] == "casting" && commands.Count() == 3 && ConfigForm.config.trackCastingPackets == true)
                     {
-                        if (commands[2] == "blocked")
-                        {
-                            Invoke((MethodInvoker)(() =>
-                            {
-                                CastingLocked = true;
-                                castingLockLabel.Text = "PACKET: Casting is LOCKED";
-                            }));
+                        // TODO: Investigate if this is needed, may cause race condition between decision logic BGW
+                        // and addon client threads. In theory with no packet loss, only needed in one spot so have
+                        // to test if works better in CastSpell() or here.
 
-                            if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) { ProtectCasting.RunWorkerAsync(); }
-                        }
-                        else if (commands[2] == "interrupted")
+                        //if (commands[2] == "blocked")
+                        //{
+                        //    Invoke((MethodInvoker)(() =>
+                        //    {
+                        //        CastingLocked = true;
+                        //        castingLockLabel.Text = "PACKET: Casting is LOCKED";
+                        //    }));
+
+                        //    if (!ProtectCasting.IsBusy || ProtectCasting.CancellationPending) { ProtectCasting.RunWorkerAsync(); }
+                        //}
+                        if (commands[2] == "interrupted")
                         {
                             Invoke((MethodInvoker)(() =>
                             {

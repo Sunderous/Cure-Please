@@ -30,11 +30,11 @@ namespace CurePlease.Engine
             /////////////////////////// PL CURE //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             // TODO: Test this! Pretty sure your own character is always party member index 0.
-            //if (PL.Player.HP > 0 && (PL.Player.HPP <= Config.MonitoredCurePercentage) && Config.EnableOutOfPartyHealing && !PL.SamePartyAs(Monitored))
-            //{
-            //    var plAsPartyMember = PL.Party.GetPartyMember(0);
-            //    return CureCalculator(plAsPartyMember);
-            //}
+            if (PL.Player.HP > 0 && (PL.Player.HPP <= Config.MonitoredCurePercentage) && Config.EnableOutOfPartyHealing && !PL.SamePartyAs(Monitored))
+            {
+                var plAsPartyMember = PL.Party.GetPartyMember(0);
+                return CureCalculator(plAsPartyMember);
+            }
 
             /////////////////////////// CURAGA //////////////////////////////////////////////////////////////////////////////////////////////////////////////////                                    
             if (_config.EnabledCuragaTiers.Any())
@@ -88,12 +88,10 @@ namespace CurePlease.Engine
                             {
                                 var actionResult = CuragaCalculator(target);
                                 
-                                // TODO: Why is this Curaga calculation always resulting in null actions?!
                                 if(actionResult != null)
                                 {
                                     return actionResult;
                                 }
-                                //return CuragaCalculator(target);
                             }
                             else
                             {
@@ -109,7 +107,6 @@ namespace CurePlease.Engine
                                 {
                                     return actionResult;
                                 }
-                                //return actionResult;
                             }
                         }
                     }
