@@ -251,7 +251,7 @@ namespace CurePlease.Utilities
             List<int> partiesResult = new List<int>();
 
             // Full alliance list of who's active and below the threshold.
-            var activeMembers = api.GetActivePartyMembers().Where(pm => pm.HPLoss() >= cureThreshold);
+            var activeMembers = api.GetActivePartyMembers().Where(pm => pm.CurrentHPP <= cureThreshold);
 
             // Figure out which parties specifically qualify.
             if (activeMembers.Where(pm => pm.InParty(1)).Count() >= countThreshold)

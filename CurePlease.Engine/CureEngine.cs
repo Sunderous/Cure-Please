@@ -42,7 +42,7 @@ namespace CurePlease.Engine
                 int plParty = PL.GetPartyRelativeTo(Monitored);
 
                 // Order parties that qualify for AOE cures by average missing HP.
-                var partyNeedsAoe = Monitored.PartyNeedsAoeCure(_config.CuragaMinPlayers, _config.CuragaHealthPercent).OrderByDescending(partyNumber => Monitored.AverageHpLossForParty(partyNumber));
+                var partyNeedsAoe = Monitored.PartyNeedsAoeCure(_config.CuragaMinPlayers, _config.CuragaHealthPercent);
 
                 // If PL is in same alliance, and there's at least 1 party that needs an AOE cure.
                 // Parties are ordered by most average missing HP.
@@ -217,8 +217,9 @@ namespace CurePlease.Engine
                 }
             }
 
-            // If we reach the last tier, and nobody meets the HP criteria, then we pick the first
-            // curaga we have MP for.
+            // If we reach the last tier, and nobody meets the absolute-HP criteria, then we pick the first
+            // curaga we have MP for. This ensures the idea of the percentage based configuration behaves
+            // as expected.
             if (cureSpell == Spells.Unknown)
             {
                 for (int i = 0; i <= 4; i++)

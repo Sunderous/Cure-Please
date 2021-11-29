@@ -1014,6 +1014,10 @@ namespace CurePlease
 
             IEnumerable<PartyMember> activeMembers = Monitored.GetActivePartyMembers();
 
+            // TODO: Replace bespoke charm/doom logic by making any debuff above a certain priority
+            // take precedance over curing. So we can simply rely on the debuff engine to identify
+            // the priority is DOOM and then skip curing based on that.
+
             /////////////////////////// Charmed CHECK /////////////////////////////////////
             // TODO: Charm logic is messy because it's not configurable currently. Clean this up when adding auto-sleep options.
             if (PL.Player.MainJob == (byte)Job.BRD)
@@ -1424,6 +1428,10 @@ namespace CurePlease
             ShowPlayerBuffsFor(party2, 17);
         }
 
+        // TODO: Investigate/test how to do this in a way that you can get interrupted
+        // mid item, and not get stuck waiting for this 5 second cooldown to finish.
+        // I think leaving this to invoke asynchronously so the decision loop continues
+        // running may just handle it anyway.
         private void Item_Wait(string ItemName)
         {
             if (!CastingLocked && !JobAbilityLock_Check)
@@ -1447,7 +1455,7 @@ namespace CurePlease
         // We want this to run on the same thread as the Decision Loop BGW that calls it.
         // That way, when we go to accession + cure, it will properly use the JA and cast
         // the spell in the same iteration the way we would expect. It makes the whole action
-        // an atomic decision instead of usin the JA in the background, and (if race condition is hit)
+        // an atomic decision instead of using the JA in the background, and (if race condition is hit)
         // relying on the NEXT decision loop to pick the cure again.
         private void JobAbility_Wait(string JobabilityDATA, string JobAbilityName)
         {
@@ -1460,6 +1468,9 @@ namespace CurePlease
                 PL.ThirdParty.SendString("/ja \"" + JobAbilityName + "\" <me>");
                 // TODO: Make the JA, casting, and loop delays configurable in case other systems/locations don't quite work
                 // the same, or someone doesn't want to use JAZero.
+
+                // In my experience, with JAZero, need a minimum 1 second delay after JA or gearswap won't work
+                // correctly for the following spellcast.
                 Thread.Sleep(TimeSpan.FromSeconds(1));
                 castingLockLabel.Invoke(new Action(() => { castingLockLabel.Text = "Casting is UNLOCKED"; }));
                 currentAction.Invoke(new Action(() => { currentAction.Text = string.Empty; }));
