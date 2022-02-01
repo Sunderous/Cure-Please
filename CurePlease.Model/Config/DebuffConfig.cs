@@ -13,7 +13,7 @@ namespace CurePlease.Model.Config
         public bool MonitoredDebuffEnabled { get; set; }
         public bool PartyDebuffEnabled { get; set; }
         public bool OnlySpecificMembers { get; set; }
-        public Dictionary<StatusEffect, bool> DebuffEnabled;
+        public Dictionary<short, bool> DebuffEnabled;
         public bool PrioritizeOverLowerCures { get; set; }
     }
 }

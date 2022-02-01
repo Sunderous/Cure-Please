@@ -32,8 +32,8 @@ namespace CurePlease.Engine
             // PL Specific debuff removal
             if (PL.Player.Status != 33 && Config.PLDebuffEnabled)
             {
-                var debuffIds = PL.Player.Buffs.Where(id => Data.DebuffPriorities.Keys.Cast<short>().Contains(id));
-                var debuffPriorityList = debuffIds.Cast<StatusEffect>().OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
+                var debuffIds = PL.Player.Buffs.Where(id => Data.DebuffPriorities.Keys.Contains(id));
+                var debuffPriorityList = debuffIds.OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
 
                 if (debuffPriorityList.Any())
                 {
@@ -55,7 +55,7 @@ namespace CurePlease.Engine
             if (Config.MonitoredDebuffEnabled && (PL.Entity.GetEntity((int)Monitored.Party.GetPartyMember(0).TargetIndex).Distance < 21) && (Monitored.Player.HP > 0) && PL.Player.Status != 33)
             {
                 var debuffIds = Monitored.Player.Buffs.Where(id => Data.DebuffPriorities.Keys.Cast<short>().Contains(id));
-                var debuffPriorityList = debuffIds.Cast<StatusEffect>().OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
+                var debuffPriorityList = debuffIds.OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
 
                 if (debuffPriorityList.Any())
                 {
@@ -65,7 +65,7 @@ namespace CurePlease.Engine
                     if ((short)targetDebuff > 0)
                     {
                         // Don't try and curaga outside our party.
-                        if ((targetDebuff == StatusEffect.Sleep || targetDebuff == StatusEffect.Sleep2) && !PL.SamePartyAs(Monitored))
+                        if ((targetDebuff == (short)StatusEffect.Sleep || targetDebuff == (short)StatusEffect.Sleep2) && !PL.SamePartyAs(Monitored))
                         {
                             return new EngineAction
                             {
@@ -100,7 +100,7 @@ namespace CurePlease.Engine
                         var debuffs = buffs[name].Where(buff => Data.DebuffPriorities.Keys.Cast<short>().Contains(buff));
 
                         // Filter out non-debuffs, and convert to short IDs. Then calculate the priority order.
-                        var debuffPriorityList = debuffs.Cast<StatusEffect>().OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
+                        var debuffPriorityList = debuffs.OrderBy(status => Array.IndexOf(Data.DebuffPriorities.Keys.ToArray(), status));
               
                         // Get the highest priority debuff we have the right spell off cooldown for.
                         var targetDebuff = debuffPriorityList.FirstOrDefault(status => Config.DebuffEnabled[status] && PL.SpellAvailable(Data.DebuffPriorities[status]));
@@ -108,7 +108,7 @@ namespace CurePlease.Engine
                         if ((short)targetDebuff > 0)
                         {
                             // Don't try and curaga outside our party.
-                            if (!priorityMember.InParty(1) && (targetDebuff == StatusEffect.Sleep || targetDebuff == StatusEffect.Sleep2))
+                            if (!priorityMember.InParty(1) && (targetDebuff == (short)StatusEffect.Sleep || targetDebuff == (short)StatusEffect.Sleep2))
                             {
                                 return new EngineAction
                                 {

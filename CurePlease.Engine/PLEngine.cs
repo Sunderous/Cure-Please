@@ -19,16 +19,20 @@ namespace CurePlease.Engine
 
         private int lastKnownEstablisherTarget = 0;
 
+        private IEnumerable<short> localBuffs;
+
         public PLEngine(EliteAPI pl, EliteAPI mon)
         {
             PL = pl;
             Monitored = mon;
         }
 
-        public EngineAction Run(PLConfig Config)
+        public EngineAction Run(PLConfig Config, IEnumerable<short> playerBuffs)
         {
+            localBuffs = playerBuffs ?? new List<short>();
+
             // FIRST IF YOU ARE SILENCED OR DOOMED ATTEMPT REMOVAL NOW
-            if (PL.HasStatus(StatusEffect.Silence) && Config.PLSilenceItemEnabled)
+            if (HasStatus(StatusEffect.Silence) && Config.PLSilenceItemEnabled)
             {
                 var plSilenceItem = Items.SilenceRemoval[Config.PLSilenceItem];
 
@@ -42,7 +46,7 @@ namespace CurePlease.Engine
                 }
 
             }
-            else if (PL.HasStatus(StatusEffect.Doom) && Config.PLDoomItemEnabled)
+            else if (HasStatus(StatusEffect.Doom) && Config.PLDoomItemEnabled)
             {
                 var plDoomItem = Items.DoomRemoval[Config.PLDoomItem];
 
@@ -56,7 +60,7 @@ namespace CurePlease.Engine
                 }
             }
 
-            else if (Config.DivineSeal && PL.Player.MPP <= 11 && PL.AbilityAvailable(Ability.DivineSeal) && !PL.Player.Buffs.Contains((short)StatusEffect.Weakness))
+            else if (Config.DivineSeal && PL.Player.MPP <= 11 && PL.AbilityAvailable(Ability.DivineSeal) && !HasStatus(StatusEffect.Weakness))
             {
                 return new EngineAction
                 {
@@ -64,7 +68,7 @@ namespace CurePlease.Engine
                     JobAbility = Ability.DivineSeal
                 };
             }
-            else if (Config.Convert && (PL.Player.MP <= Config.ConvertMP) && PL.AbilityAvailable(Ability.Convert) && !PL.Player.Buffs.Contains((short)StatusEffect.Weakness))
+            else if (Config.Convert && (PL.Player.MP <= Config.ConvertMP) && PL.AbilityAvailable(Ability.Convert) && !HasStatus(StatusEffect.Weakness))
             {
                 return new EngineAction
                 {
@@ -123,17 +127,17 @@ namespace CurePlease.Engine
                 };
             }
 
-            if (Config.AfflatusSolaceEnabled && (!PL.HasStatus(StatusEffect.Afflatus_Solace)) && PL.AbilityAvailable(Ability.AfflatusSolace))
+            if (Config.AfflatusSolaceEnabled && (!HasStatus(StatusEffect.Afflatus_Solace)) && PL.AbilityAvailable(Ability.AfflatusSolace))
             {
                 return new EngineAction { JobAbility = Ability.AfflatusSolace };
             }
             
-            if (Config.AfflatusMiseryEnabled && (!PL.HasStatus(StatusEffect.Afflatus_Misery)) && PL.AbilityAvailable(Ability.AfflatusMisery))
+            if (Config.AfflatusMiseryEnabled && (!HasStatus(StatusEffect.Afflatus_Misery)) && PL.AbilityAvailable(Ability.AfflatusMisery))
             {
                 return new EngineAction { JobAbility = Ability.AfflatusMisery };
             }                          
             
-            if (Config.Composure && (!PL.HasStatus(StatusEffect.Composure)) && PL.AbilityAvailable(Ability.Composure))
+            if (Config.Composure && (!HasStatus(StatusEffect.Composure)) && PL.AbilityAvailable(Ability.Composure))
             {
                 return new EngineAction
                 {
@@ -141,7 +145,7 @@ namespace CurePlease.Engine
                 };
             }
             
-            if (Config.LightArts && (!PL.HasStatus(StatusEffect.Light_Arts)) && (!PL.HasStatus(StatusEffect.Addendum_White)) && PL.AbilityAvailable(Ability.LightArts))
+            if (Config.LightArts && (!HasStatus(StatusEffect.Light_Arts)) && (!HasStatus(StatusEffect.Addendum_White)) && PL.AbilityAvailable(Ability.LightArts))
             {
                 return new EngineAction
                 {
@@ -149,7 +153,7 @@ namespace CurePlease.Engine
                 };
             }
             
-            if (Config.AddendumWhite && (!PL.HasStatus(StatusEffect.Addendum_White)) && PL.HasStatus(StatusEffect.Light_Arts) && PL.CurrentSCHCharges() > 0)
+            if (Config.AddendumWhite && (!HasStatus(StatusEffect.Addendum_White)) && HasStatus(StatusEffect.Light_Arts) && PL.CurrentSCHCharges() > 0)
             {
                 return new EngineAction
                 {
@@ -157,7 +161,7 @@ namespace CurePlease.Engine
                 };
             }
 
-            if (Config.DarkArts && (!PL.HasStatus(StatusEffect.Dark_Arts)) && (!PL.HasStatus(StatusEffect.Addendum_Black)) && PL.AbilityAvailable(Ability.DarkArts))
+            if (Config.DarkArts && (!HasStatus(StatusEffect.Dark_Arts)) && (!HasStatus(StatusEffect.Addendum_Black)) && PL.AbilityAvailable(Ability.DarkArts))
             {
                 return new EngineAction
                 {
@@ -165,19 +169,19 @@ namespace CurePlease.Engine
                 };
             }
 
-            if (Config.AddendumBlack && PL.HasStatus(StatusEffect.Dark_Arts) && (!PL.HasStatus(StatusEffect.Addendum_Black)) && PL.CurrentSCHCharges() > 0)
+            if (Config.AddendumBlack && HasStatus(StatusEffect.Dark_Arts) && (!HasStatus(StatusEffect.Addendum_Black)) && PL.CurrentSCHCharges() > 0)
             {
                 return new EngineAction
                 {
                     JobAbility = Ability.AddendumBlack
                 };
             }
-            if (Config.SublimationEnabled && (!PL.HasStatus(StatusEffect.Sublimation_Activated)) && (!PL.HasStatus(StatusEffect.Sublimation_Complete)) && (!PL.HasStatus(StatusEffect.Refresh)) && PL.AbilityAvailable(Ability.Sublimation))
+            if (Config.SublimationEnabled && (!HasStatus(StatusEffect.Sublimation_Activated)) && (!HasStatus(StatusEffect.Sublimation_Complete)) && (!HasStatus(StatusEffect.Refresh)) && PL.AbilityAvailable(Ability.Sublimation))
             {
                 return new EngineAction { JobAbility = Ability.Sublimation };
             }
 
-            if (Config.SublimationEnabled && ((PL.Player.MPMax - PL.Player.MP) > Config.SublimationMPLossThreshold) && PL.HasStatus(StatusEffect.Sublimation_Complete) && PL.AbilityAvailable(Ability.Sublimation))
+            if (Config.SublimationEnabled && ((PL.Player.MPMax - PL.Player.MP) > Config.SublimationMPLossThreshold) && HasStatus(StatusEffect.Sublimation_Complete) && PL.AbilityAvailable(Ability.Sublimation))
             {
                 return new EngineAction { JobAbility = Ability.Sublimation };
             }
@@ -213,7 +217,7 @@ namespace CurePlease.Engine
                 }
             }
             
-            if (Config.ShellraEnabled && (!PL.HasStatus(StatusEffect.Shell)))
+            if (Config.ShellraEnabled && (!HasStatus(StatusEffect.Shell)))
             {
                 var shellraSpell = Data.ShellraTiers[Config.ShellraLevel - 1];
                 if (PL.SpellAvailable(shellraSpell))
@@ -225,7 +229,7 @@ namespace CurePlease.Engine
                 }
             }
             
-            if (Config.ProtectraEnabled && (!PL.HasStatus(StatusEffect.Protect)))
+            if (Config.ProtectraEnabled && (!HasStatus(StatusEffect.Protect)))
             {
                 var protectraSpell = Data.ProtectraTiers[Config.ProtectraLevel - 1];
                 if (PL.SpellAvailable(protectraSpell))
@@ -234,7 +238,7 @@ namespace CurePlease.Engine
                 }
             }
             
-            if (Config.BarElementEnabled && !PL.HasStatus(Data.SpellEffects[Config.BarElementSpell]) && PL.SpellAvailable(Config.BarElementSpell))
+            if (Config.BarElementEnabled && !HasStatus((StatusEffect)Data.SpellEffects[Config.BarElementSpell]) && PL.SpellAvailable(Config.BarElementSpell))
             {
                 // TODO: Make this work properly, so it can figure out if there's 2 charges and return 
                 // an action that says: Do Accession + Perpetuance + Barspell.
@@ -243,11 +247,11 @@ namespace CurePlease.Engine
                     Spell = Config.BarElementSpell
                 };
 
-                if (Config.AccessionEnabled && Config.BarElementAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !Config.AOEBarElementEnabled && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.BarElementAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !Config.AOEBarElementEnabled && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.BarElemenetPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.BarElemenetPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -255,18 +259,18 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.BarStatusEnabled && !PL.HasStatus(Data.SpellEffects[Config.BarStatusSpell]) && PL.SpellAvailable(Config.BarStatusSpell))
+            if (Config.BarStatusEnabled && !HasStatus(Data.SpellEffects[Config.BarStatusSpell]) && PL.SpellAvailable(Config.BarStatusSpell))
             {
                 var result = new EngineAction
                 {
                     Spell = Config.BarStatusSpell
                 };
 
-                if (Config.AccessionEnabled && Config.BarStatusAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !Config.AOEBarStatusEnabled && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.BarStatusAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !Config.AOEBarStatusEnabled && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled  && Config.BarStatusPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled  && Config.BarStatusPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -274,19 +278,19 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.GainBoostSpellEnabled && !PL.HasStatus(Data.SpellEffects[Config.GainBoostSpell]) && PL.SpellAvailable(Config.GainBoostSpell))
+            if (Config.GainBoostSpellEnabled && !HasStatus(Data.SpellEffects[Config.GainBoostSpell]) && PL.SpellAvailable(Config.GainBoostSpell))
             {
                 return new EngineAction { Spell = Config.GainBoostSpell };
             }
             
-            if (Config.StormSpellEnabled && !PL.HasStatus(Data.SpellEffects[Config.StormSpell]) && PL.SpellAvailable(Config.StormSpell))
+            if (Config.StormSpellEnabled && !HasStatus(Data.SpellEffects[Config.StormSpell]) && PL.SpellAvailable(Config.StormSpell))
             {
                 var result = new EngineAction { Spell = Config.StormSpell };
-                if (Config.AccessionEnabled && Config.StormspellAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.StormspellAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.StormspellPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.StormspellPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -294,13 +298,13 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.ProtectEnabled && (!PL.HasStatus(StatusEffect.Protect)))
+            if (Config.ProtectEnabled && (!HasStatus(StatusEffect.Protect)))
             {
                 var result = new EngineAction { Spell = Config.ProtectSpell };
 
                 if (Config.AccessionEnabled&& Config.AccessionProtectShell && PL.Party.GetPartyMembers().Count() > 2 && PL.AbilityAvailable(Ability.Accession) && PL.CurrentSCHCharges() > 0)
                 {
-                    if (!PL.HasStatus(StatusEffect.Accession))
+                    if (!HasStatus(StatusEffect.Accession))
                     {
                         result.JobAbility = Ability.Accession;
                     }
@@ -309,13 +313,13 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.ShellEnabled && (!PL.HasStatus(StatusEffect.Shell)))
+            if (Config.ShellEnabled && (!HasStatus(StatusEffect.Shell)))
             {
                 var result = new EngineAction { Spell = Config.ShellSpell };
 
                 if (Config.AccessionEnabled && Config.AccessionProtectShell && PL.Party.GetPartyMembers().Count() > 2 && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession))
                 {
-                    if (!PL.HasStatus(StatusEffect.Accession))
+                    if (!HasStatus(StatusEffect.Accession))
                     {
                         result.JobAbility = Ability.Accession;
                     }
@@ -324,11 +328,11 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.ReraiseEnabled && (!PL.HasStatus(StatusEffect.Reraise)))
+            if (Config.ReraiseEnabled && (!HasStatus(StatusEffect.Reraise)))
             {
                 var result = new EngineAction { Spell = Config.ReraiseSpell };
 
-                if(Config.EnlightenmentReraise && !PL.HasStatus(StatusEffect.Addendum_White) && PL.AbilityAvailable(Ability.Enlightenment))
+                if(Config.EnlightenmentReraise && !HasStatus(StatusEffect.Addendum_White) && PL.AbilityAvailable(Ability.Enlightenment))
                 {
                     result.JobAbility = Ability.Enlightenment;
                 }
@@ -351,15 +355,15 @@ namespace CurePlease.Engine
                 }             
             }
             
-            if (Config.BlinkEnabled && (!PL.HasStatus(StatusEffect.Blink)) && PL.SpellAvailable(Spells.Blink))
+            if (Config.BlinkEnabled && (!HasStatus(StatusEffect.Blink)) && PL.SpellAvailable(Spells.Blink))
             {
                 var result = new EngineAction { Spell = Spells.Blink };
 
-                if (Config.AccessionEnabled && Config.BlinkAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.BlinkAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.BlinkPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.BlinkPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -367,15 +371,15 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.PhalanxEnabled && (!PL.HasStatus(StatusEffect.Phalanx)) && PL.SpellAvailable(Spells.Phalanx))
+            if (Config.PhalanxEnabled && (!HasStatus(StatusEffect.Phalanx)) && PL.SpellAvailable(Spells.Phalanx))
             {
                 var result = new EngineAction { Spell = Spells.Phalanx };
 
-                if (Config.AccessionEnabled && Config.PhalanxAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.PhalanxAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.PhalanxPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.PhalanxPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -383,15 +387,15 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.RefreshEnabled && (!PL.HasStatus(StatusEffect.Refresh)))
+            if (Config.RefreshEnabled && (!HasStatus(StatusEffect.Refresh)))
             {
                 var result = new EngineAction { Spell = Config.RefreshSpell };
 
-                if (Config.AccessionEnabled && Config.RefreshAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.RefreshAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.RefreshPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.RefreshPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -399,15 +403,15 @@ namespace CurePlease.Engine
                 return result;              
             }
             
-            if (Config.RegenEnabled && (!PL.HasStatus(StatusEffect.Regen)))
+            if (Config.RegenEnabled && (!HasStatus(StatusEffect.Regen)))
             {
                 var result = new EngineAction { Spell = Config.RegenSpell };
 
-                if (Config.AccessionEnabled && Config.RegenAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.RegenAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.RegenPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.RegenPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -415,15 +419,15 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.AdloquiumEnabled && (!PL.HasStatus(StatusEffect.Regain)) && PL.SpellAvailable(Spells.Adloquium))
+            if (Config.AdloquiumEnabled && (!HasStatus(StatusEffect.Regain)) && PL.SpellAvailable(Spells.Adloquium))
             {
                 var result = new EngineAction { Spell = Spells.Adloquium };
 
-                if (Config.AccessionEnabled && Config.AdloquiumAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.AdloquiumAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.AdloquiumPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.AdloquiumPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -431,15 +435,15 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.StoneskinEnabled && (!PL.HasStatus(StatusEffect.Stoneskin)) && PL.SpellAvailable(Spells.Stoneskin))
+            if (Config.StoneskinEnabled && (!HasStatus(StatusEffect.Stoneskin)) && PL.SpellAvailable(Spells.Stoneskin))
             {
                 var result = new EngineAction { Spell = Spells.Stoneskin };
 
-                if (Config.AccessionEnabled && Config.StoneskinAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.StoneskinAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.StoneskinPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.StoneskinPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -447,15 +451,15 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.AquaveilEnabled && (!PL.HasStatus(StatusEffect.Aquaveil)) && PL.SpellAvailable(Spells.Aquaveil))
+            if (Config.AquaveilEnabled && (!HasStatus(StatusEffect.Aquaveil)) && PL.SpellAvailable(Spells.Aquaveil))
             {
                 var result = new EngineAction { Spell = Spells.Aquaveil };
 
-                if (Config.AccessionEnabled && Config.AquaveilAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                if (Config.AccessionEnabled && Config.AquaveilAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
                 }
-                else if (Config.PerpetuanceEnabled && Config.AquaveilPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                else if (Config.PerpetuanceEnabled && Config.AquaveilPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                 {
                     result.JobAbility = Ability.Perpetuance;
                 }
@@ -463,38 +467,38 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.KlimaformEnabled && !PL.HasStatus(StatusEffect.Klimaform))
+            if (Config.KlimaformEnabled && !HasStatus(StatusEffect.Klimaform))
             {
                 return new EngineAction { Spell = Spells.Klimaform };
             }
             
-            if (Config.TemperEnabled && (!PL.HasStatus(StatusEffect.Multi_Strikes)))
+            if (Config.TemperEnabled && (!HasStatus(StatusEffect.Multi_Strikes)))
             {
                 return new EngineAction { Spell = Config.TemperSpell };
             }
             
-            if (Config.HasteEnabled && (!PL.HasStatus(StatusEffect.Haste)))
+            if (Config.HasteEnabled && (!HasStatus(StatusEffect.Haste)))
             {
                 return new EngineAction { Spell = Config.HasteSpell };
             }
             
-            if (Config.SpikesEnabled && !PL.HasStatus(Data.SpellEffects[Config.SpikesSpell]))
+            if (Config.SpikesEnabled && !HasStatus(Data.SpellEffects[Config.SpikesSpell]))
             {
                 return new EngineAction { Spell = Config.SpikesSpell };
             }
             
-            if (Config.EnSpellEnabled && !PL.HasStatus(Data.SpellEffects[Config.EnSpell]) && PL.SpellAvailable(Config.EnSpell))
+            if (Config.EnSpellEnabled && !HasStatus(Data.SpellEffects[Config.EnSpell]) && PL.SpellAvailable(Config.EnSpell))
             {
                 var result = new EngineAction { Spell = Config.EnSpell };
 
                 // Don't want to try and accession/perpetuance tier II.
                 if(!Config.EnSpell.Contains("II"))
                 {
-                    if (Config.AccessionEnabled && Config.EnspellAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !PL.HasStatus(StatusEffect.Accession))
+                    if (Config.AccessionEnabled && Config.EnspellAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                     {
                         result.JobAbility = Ability.Accession;
                     }
-                    else if (Config.PerpetuanceEnabled && Config.EnspellPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !PL.HasStatus(StatusEffect.Perpetuance))
+                    else if (Config.PerpetuanceEnabled && Config.EnspellPerpetuance && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Perpetuance) && !HasStatus(StatusEffect.Perpetuance))
                     {
                         result.JobAbility = Ability.Perpetuance;
                     }
@@ -503,7 +507,7 @@ namespace CurePlease.Engine
                 return result;
             }
             
-            if (Config.AuspiceEnabled && (!PL.HasStatus(StatusEffect.Auspice)) && PL.SpellAvailable(Spells.Auspice))
+            if (Config.AuspiceEnabled && (!HasStatus(StatusEffect.Auspice)) && PL.SpellAvailable(Spells.Auspice))
             {
                 return new EngineAction { Spell = Spells.Auspice };
             }
@@ -556,6 +560,16 @@ namespace CurePlease.Engine
             }
            
             return null;
+        }
+
+        private bool HasStatus(StatusEffect status)
+        {
+            return localBuffs.Contains((short)status);
+        }
+
+        private bool HasStatus(short status)
+        {
+            return localBuffs.Contains(status);
         }
 
         private int CheckEngagedStatus_Hate(PLConfig Config)

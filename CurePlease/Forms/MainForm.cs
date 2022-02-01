@@ -1098,7 +1098,8 @@ namespace CurePlease
 
             // PL AUTO BUFFS
             var plConfig = Config.InvokeRequired ? (PLConfig)Config.Invoke(new Func<PLConfig>(() => Config.GetPLConfig())) : Config.GetPLConfig();
-            var plEngineResult = PLEngine.Run(plConfig);
+            var plBuffs = ActiveBuffs.ContainsKey(PL.Player.Name) ? ActiveBuffs[PL.Player.Name] : new List<short>();
+            var plEngineResult = PLEngine.Run(plConfig, plBuffs);
             if (plEngineResult != null)
             {
                 if (!string.IsNullOrEmpty(plEngineResult.Item))

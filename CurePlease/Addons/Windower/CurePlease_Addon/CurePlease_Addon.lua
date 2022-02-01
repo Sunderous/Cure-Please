@@ -62,11 +62,65 @@ function Run_Buff_Function(id, data)
   end
 end
 
+-- Credit to Starfox for this fix.
+-- https://github.com/twothreeforme/Cure-Please/
+function send_player_buffs ()
+
+		Buffs = {}
+		CharacterName = nil
+		formattedString = nil
+		intIndex = 1
+
+		-- GRAB THE MEMBERS NAME
+		if windower.ffxi.get_player() ~= nil then
+			CharacterName = windower.ffxi.get_player().name;
+		else 
+			return 
+		end 
+
+		if CharacterName ~= nil then
+			  Buffs = windower.ffxi.get_player()["buffs"]
+		else 
+			return 
+		end
+
+
+		--FOR DEBUGGING PURPOSES
+		--print(os.date("%H:%M:%S"), "Sending buffs: ", dump(Buffs))
+
+
+		  -- COUNT TOTAL NUMBER OFF BUFFS LOCATED AND BUILD THE BUFF STRING
+		  formattedString = "CUREPLEASE_buffs_"..CharacterName.."_"
+		  for index, value in pairs(Buffs) do
+			formattedString = formattedString .. value
+			if intIndex ~= tablelength(Buffs) then
+			  formattedString = formattedString ..","
+			end
+			intIndex = intIndex + 1
+		  end
+
+		  -- COMPLETED BUILDING THE BUFFS TABLE AND GRABBING THE CHARACTER NAME, SEND THE DATA VIA THE LOCAL NETWORK USING SOCKETS
+		  local CP_connect = assert(socket.udp())
+		  CP_connect:settimeout(1)
+		  assert(CP_connect:sendto(formattedString, ip, port))
+		  CP_connect:close()
+
+ end
+
 windower.register_event('incoming chunk', function (id, data)
   if id == 0x076 then
-  Run_Buff_Function(id, data)
-end
+    Run_Buff_Function(id, data)
+   end
 end)
+
+windower.register_event('gain buff', function(buff_id)
+	send_player_buffs()
+end)
+
+windower.register_event('lose buff', function(buff_id)
+	send_player_buffs()
+end)
+
 
 windower.register_event('addon command', function(input, ...)
 local args = {...}
@@ -85,6 +139,7 @@ if args ~= nil then
     CP_connect:settimeout(1)
     assert(CP_connect:sendto("CUREPLEASE_confirmed", ip, port))
     CP_connect:close()
+    send_player_buffs()
   elseif cmd == "cmd" then
     local CP_connect = assert(socket.udp())
     CP_connect:settimeout(1)
