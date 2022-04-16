@@ -35,6 +35,8 @@ namespace CurePlease.Engine
         // Haste/Flurry/Protect/Shell/Adloquium
         private Dictionary<string, IList<Tuple<string, DateTime>>> TimedBuffs = new Dictionary<string, IList<Tuple<string, DateTime>>>();
 
+        private const int defaultPriority = 8;
+
         public BuffEngine(EliteAPI pl, EliteAPI mon)
         {
             PL = pl;
@@ -57,6 +59,7 @@ namespace CurePlease.Engine
                     {
                         return new EngineAction()
                         {
+                            Priority = defaultPriority,
                             Spell = AutoBuffs[ptMember.Name].First(),
                             Target = ptMember.Name
                         };
@@ -69,6 +72,7 @@ namespace CurePlease.Engine
                         {
                             return new EngineAction()
                             {
+                                Priority = defaultPriority,
                                 Spell = missingBuffSpell,
                                 Target = ptMember.Name
                             };
@@ -126,6 +130,7 @@ namespace CurePlease.Engine
                         {
                             return new EngineAction()
                             {
+                                Priority = defaultPriority,
                                 Spell = spell,
                                 Target = ptMember.Name
                             };

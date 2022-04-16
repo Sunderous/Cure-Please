@@ -129,6 +129,11 @@ namespace CurePlease.Model.Constants
         public static string Utsusemi_Ichi = "Utsusemi: Ichi";
         public static string Utsusemi_Ni = "Utsusemi: Ni";
 
+        public static string Repose = "Repose";
+
+        public static string Sleep = "Sleep";
+        public static string Sleep_II = "Sleep II";
+
         public static string Foe_Lullaby = "Foe Lullaby";
         public static string Foe_Lullaby_II = "Foe Lullaby II";
 

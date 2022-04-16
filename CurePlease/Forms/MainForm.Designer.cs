@@ -225,6 +225,10 @@ namespace CurePlease
             this.castingLockLabel = new System.Windows.Forms.Label();
             this.Follow_BGW = new System.ComponentModel.BackgroundWorker();
             this.DecisionLoop_BGW = new System.ComponentModel.BackgroundWorker();
+            this.PLEngine_BGW = new System.ComponentModel.BackgroundWorker();
+            this.CureEngine_BGW = new System.ComponentModel.BackgroundWorker();
+            this.DebuffEngine_BGW = new System.ComponentModel.BackgroundWorker();
+            this.BuffEngine_BGW = new System.ComponentModel.BackgroundWorker();
             this.OptionsButton = new System.Windows.Forms.Button();
             this.ChatLogButton = new System.Windows.Forms.Button();
             this.PartyBuffsButton = new System.Windows.Forms.Button();
@@ -2250,6 +2254,26 @@ namespace CurePlease
             this.DecisionLoop_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.DecisionLoop_BGW_DoWork);
             this.DecisionLoop_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.DecisionLoop_BGW_RunWorkerCompleted);
             // 
+            // PLEngine_BGW
+            // 
+            this.PLEngine_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.PLEngine_BGW_DoWork);
+            this.PLEngine_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.PLEngine_BGW_RunWorkerCompleted);
+            // 
+            // CureEngine_BGW
+            // 
+            this.CureEngine_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.CureEngine_BGW_DoWork);
+            this.CureEngine_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.CureEngine_BGW_RunWorkerCompleted);
+            // 
+            // DebuffEngine_BGW
+            // 
+            this.DebuffEngine_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.DebuffEngine_BGW_DoWork);
+            this.DebuffEngine_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.DebuffEngine_BGW_RunWorkerCompleted);
+            // 
+            // BuffEngine_BGW
+            // 
+            this.BuffEngine_BGW.DoWork += new System.ComponentModel.DoWorkEventHandler(this.BuffEngine_BGW_DoWork);
+            this.BuffEngine_BGW.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.BuffEngine_BGW_RunWorkerCompleted);
+            // 
             // OptionsButton
             // 
             this.OptionsButton.AutoSize = true;
@@ -2598,6 +2622,10 @@ namespace CurePlease
         private Label castingLockLabel;
         private System.ComponentModel.BackgroundWorker Follow_BGW;
         private System.ComponentModel.BackgroundWorker DecisionLoop_BGW;
+        private System.ComponentModel.BackgroundWorker PLEngine_BGW;
+        private System.ComponentModel.BackgroundWorker CureEngine_BGW;
+        private System.ComponentModel.BackgroundWorker DebuffEngine_BGW;
+        private System.ComponentModel.BackgroundWorker BuffEngine_BGW;
         private Button OptionsButton;
         private Button ChatLogButton;
         private Button PartyBuffsButton;

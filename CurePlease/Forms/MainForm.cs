@@ -18,6 +18,7 @@ namespace CurePlease
     using CurePlease.Utilities;
     using EliteMMO.API;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
@@ -73,6 +74,8 @@ namespace CurePlease
         public PLEngine PLEngine;
 
         public CureEngine CureEngine;
+
+        private ConcurrentDictionary<EEngineType, EngineAction> EngineActions = new ConcurrentDictionary<EEngineType, EngineAction>();
 
         public double last_percent = 1;
 
@@ -209,6 +212,10 @@ namespace CurePlease
             notifyIcon1.BalloonTipText = "CurePlease has been minimized.";
             notifyIcon1.BalloonTipIcon = ToolTipIcon.Info;
 
+            CureEngine_BGW.RunWorkerAsync();
+            DebuffEngine_BGW.RunWorkerAsync();
+            PLEngine_BGW.RunWorkerAsync();
+            BuffEngine_BGW.RunWorkerAsync();
             DecisionLoop_BGW.RunWorkerAsync();
         }
 
@@ -939,6 +946,154 @@ namespace CurePlease
             plZ = z;
         }
 
+        private void ExecuteEngineAction(EngineAction action)
+        {
+            if (action != null)
+            {
+                if (!string.IsNullOrEmpty(action.Item))
+                {
+                    Item_Wait(action.Item);
+                }
+
+                if (!string.IsNullOrEmpty(action.JobAbility))
+                {
+                    if (action.JobAbility == Ability.Devotion)
+                    {
+                        PL.ThirdParty.SendString($"/ja \"{Ability.Devotion}\" {action.Target}");
+                    }
+                    else
+                    {
+                        JobAbility_Wait(action.Message, action.JobAbility);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(action.Spell))
+                {
+                    var target = string.IsNullOrEmpty(action.Target) ? "<me>" : action.Target;
+                    CastSpell(target, action.Spell);
+                }
+            }
+        }
+
+        private async void CureEngine_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            Thread.Sleep(100);
+
+            // Skip if we aren't hooked into the game.
+            if (PL == null || Monitored == null || pauseActions)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                // For now we run these before deciding what to do, in case we need
+                // to skip a low priority cure.
+                // CURE ENGINE
+                var cureConfig = Config.InvokeRequired ? (CureConfig)Config.Invoke(new Func<CureConfig>(() => Config.GetCureConfig())) : Config.GetCureConfig();
+
+                bool[] enabledBoxes = new bool[] {
+                    player0enabled.Checked, player1enabled.Checked, player2enabled.Checked, player3enabled.Checked, player4enabled.Checked, player5enabled.Checked,
+                    player6enabled.Checked, player7enabled.Checked, player8enabled.Checked, player9enabled.Checked, player10enabled.Checked, player11enabled.Checked,
+                    player12enabled.Checked, player13enabled.Checked, player14enabled.Checked, player15enabled.Checked, player16enabled.Checked, player17enabled.Checked
+                };
+
+
+                // Set array values for GUI "High Priority" checkboxes
+                bool[] highPriorityBoxes = new bool[] {
+                    player0priority.Checked, player1priority.Checked, player2priority.Checked, player3priority.Checked, player4priority.Checked, player5priority.Checked,
+                    player6priority.Checked, player7priority.Checked, player8priority.Checked, player9priority.Checked, player10priority.Checked, player11priority.Checked,
+                    player12priority.Checked, player13priority.Checked, player14priority.Checked, player15priority.Checked, player16priority.Checked, player17priority.Checked
+                };
+
+                var result = CureEngine.Run(cureConfig, enabledBoxes, highPriorityBoxes);
+
+                // Current hack to emulate the debuff "prioritize over cures" behavior, will be baked in for now since
+                // I had it on 99.9% of the time.
+                // TODO: Make configurable
+                if(result != null && (result.Spell == Spells.Cure || result.Spell == Spells.Cure_II))
+                {
+                    result.Priority = 5;
+                }
+
+                EngineActions[EEngineType.CURE] = result;
+            });          
+        }
+
+        private void CureEngine_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            CureEngine_BGW.RunWorkerAsync();
+        }
+
+        private async void DebuffEngine_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            Thread.Sleep(100);
+
+            // Skip if we aren't hooked into the game.
+            if (PL == null || Monitored == null || pauseActions)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                var debuffConfig = Config.InvokeRequired ? (DebuffConfig)Config.Invoke(new Func<DebuffConfig>(() => Config.GetDebuffConfig())) : Config.GetDebuffConfig();
+
+                EngineActions[EEngineType.DEBUFF] = DebuffEngine.Run(debuffConfig, ActiveBuffs);
+            });
+        }
+
+        private void DebuffEngine_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            DebuffEngine_BGW.RunWorkerAsync();
+        }
+
+        private async void PLEngine_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            Thread.Sleep(100);
+
+            // Skip if we aren't hooked into the game.
+            if (PL == null || Monitored == null || pauseActions)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {             
+                // PL AUTO BUFFS
+                var plConfig = Config.InvokeRequired ? (PLConfig)Config.Invoke(new Func<PLConfig>(() => Config.GetPLConfig())) : Config.GetPLConfig();
+                var plBuffs = ActiveBuffs.ContainsKey(PL.Player.Name) ? ActiveBuffs[PL.Player.Name] : new List<short>();
+                EngineActions[EEngineType.PL] = PLEngine.Run(plConfig, plBuffs);
+            });
+        }
+
+        private void PLEngine_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            PLEngine_BGW.RunWorkerAsync();
+        }
+
+        private async void BuffEngine_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            Thread.Sleep(100);
+
+            // Skip if we aren't hooked into the game.
+            if (PL == null || Monitored == null || pauseActions)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                var buffConfig = Config.InvokeRequired ? (BuffConfig)Config.Invoke(new Func<BuffConfig>(() => Config.GetBuffConfig())) : Config.GetBuffConfig();
+                EngineActions[EEngineType.BUFF] = BuffEngine.Run(buffConfig, ActiveBuffs);
+            });
+        }
+
+        private void BuffEngine_BGW_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            BuffEngine_BGW.RunWorkerAsync();
+        }
+
         private async void DecisionLoop_BGW_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
         {
             Thread.Sleep(100);
@@ -965,25 +1120,8 @@ namespace CurePlease
             if ((PL.Player.X != plX) || (PL.Player.Y != plY) || (PL.Player.Z != plZ) || ((PL.Player.Status != (uint)Status.Standing) && (PL.Player.Status != (uint)Status.Fighting)))
             {
                 updatePLPosition(PL.Player.X, PL.Player.Y, PL.Player.Z);
-                Thread.Sleep(500);
                 return;
             }
-
-            // Set array values for GUI "Enabled" checkboxes
-            bool[] enabledBoxes = new bool[] {
-                player0enabled.Checked, player1enabled.Checked, player2enabled.Checked, player3enabled.Checked, player4enabled.Checked, player5enabled.Checked,
-                player6enabled.Checked, player7enabled.Checked, player8enabled.Checked, player9enabled.Checked, player10enabled.Checked, player11enabled.Checked,
-                player12enabled.Checked, player13enabled.Checked, player14enabled.Checked, player15enabled.Checked, player16enabled.Checked, player17enabled.Checked
-            };
-
-
-            // Set array values for GUI "High Priority" checkboxes
-            bool[] highPriorityBoxes = new bool[] {
-                player0priority.Checked, player1priority.Checked, player2priority.Checked, player3priority.Checked, player4priority.Checked, player5priority.Checked,
-                player6priority.Checked, player7priority.Checked, player8priority.Checked, player9priority.Checked, player10priority.Checked, player11priority.Checked,
-                player12priority.Checked, player13priority.Checked, player14priority.Checked, player15priority.Checked, player16priority.Checked, player17priority.Checked
-            };
-            
          
             // IF ENABLED PAUSE ON KO
             if (ConfigForm.config.pauseOnKO && (PL.Player.Status == 2 || PL.Player.Status == 3))
@@ -1012,148 +1150,11 @@ namespace CurePlease
                 }
             }
 
-            IEnumerable<PartyMember> activeMembers = Monitored.GetActivePartyMembers();
+            var bestAction = EngineActions.Values.Where(action => action != null).OrderBy(action => action.Priority).FirstOrDefault();
 
-            // TODO: Replace bespoke charm/doom logic by making any debuff above a certain priority
-            // take precedance over curing. So we can simply rely on the debuff engine to identify
-            // the priority is DOOM and then skip curing based on that.
-
-            /////////////////////////// Charmed CHECK /////////////////////////////////////
-            // TODO: Charm logic is messy because it's not configurable currently. Clean this up when adding auto-sleep options.
-            if (PL.Player.MainJob == (byte)Job.BRD)
+            if(bestAction != default)
             {
-                // Get the list of anyone who's charmed and in range.
-                var charmedMembers = activeMembers.Where(pm => PL.CanCastOn(pm) && ActiveBuffs.ContainsKey(pm.Name) && (ActiveBuffs[pm.Name].Contains((short)StatusEffect.Charm1) || ActiveBuffs[pm.Name].Contains((short)StatusEffect.Charm2)));
-                        
-                if (charmedMembers.Any())
-                {
-                    // We target the first charmed member who's not already asleep.
-                    var sleepTarget = charmedMembers.FirstOrDefault(member => !(ActiveBuffs[member.Name].Contains((short)StatusEffect.Sleep) || ActiveBuffs[member.Name].Contains((short)StatusEffect.Sleep2)));
-
-                    if (sleepTarget != default)
-                    {
-                        // For now add some redundancy in case the first cast is resisted.
-                        var sleepSong = PL.SpellAvailable(Spells.Foe_Lullaby_II) ? Spells.Foe_Lullaby_II : Spells.Foe_Lullaby;
-                                
-                        CastSpell(sleepTarget.Name, sleepSong);
-                        return;
-                    }
-                }
-            }
-
-            var debuffConfig = Config.InvokeRequired ? (DebuffConfig)Config.Invoke(new Func<DebuffConfig>(() => Config.GetDebuffConfig())) : Config.GetDebuffConfig();
-            /////////////////////////// DOOM CHECK /////////////////////////////////////
-            var doomedMembers = activeMembers.Count(pm => PL.CanCastOn(pm) && ActiveBuffs.ContainsKey(pm.Name) && ActiveBuffs[pm.Name].Contains((short)StatusEffect.Doom));
-            if(doomedMembers > 0)
-            {
-                var doomCheckResult = DebuffEngine.Run(debuffConfig, ActiveBuffs);
-                if (doomCheckResult != null && doomCheckResult.Spell != null)
-                {
-                    CastSpell(doomCheckResult.Target, doomCheckResult.Spell);
-                    return;
-                }
-            }
-
-            // For now we run these before deciding what to do, in case we need
-            // to skip a low priority cure.
-            // CURE ENGINE
-            var cureConfig = Config.InvokeRequired ? (CureConfig)Config.Invoke(new Func<CureConfig>(() => Config.GetCureConfig())) : Config.GetCureConfig();
-            var cureResult = CureEngine.Run(cureConfig, enabledBoxes, highPriorityBoxes);
-
-            if(cureResult != null && cureResult.Spell != Spells.Unknown)
-            {
-                cureFound.Invoke(new Action(() => { cureFound.BackColor = Color.Green; }));
-            }
-            else
-            {
-                cureFound.Invoke(new Action(() => { cureFound.BackColor = Color.DarkRed; }));
-            }
-
-
-            var debuffResult = DebuffEngine.Run(debuffConfig, ActiveBuffs);
-
-            if(cureResult != null && !string.IsNullOrEmpty(cureResult.Spell))
-            {
-                bool lowPriority = Array.IndexOf(Data.CureTiers, cureResult.Spell) < 2;
-
-                // Only cast the spell/JA if we don't need to skip debuffs based on
-                // config and low priority.
-                if(!lowPriority || !ConfigForm.config.PrioritiseOverLowerTier || debuffResult == null)
-                {
-                    if (!string.IsNullOrEmpty(cureResult.JobAbility))
-                    {
-                        JobAbility_Wait(cureResult.Message, cureResult.JobAbility);
-                    }
-
-                    CastSpell(cureResult.Target, cureResult.Spell);
-                    return;
-                }                   
-            }
-
-            if (debuffResult != null)
-            {
-                CastSpell(debuffResult.Target, debuffResult.Spell);
-                return;
-            }
-
-            // PL AUTO BUFFS
-            var plConfig = Config.InvokeRequired ? (PLConfig)Config.Invoke(new Func<PLConfig>(() => Config.GetPLConfig())) : Config.GetPLConfig();
-            var plBuffs = ActiveBuffs.ContainsKey(PL.Player.Name) ? ActiveBuffs[PL.Player.Name] : new List<short>();
-            var plEngineResult = PLEngine.Run(plConfig, plBuffs);
-            if (plEngineResult != null)
-            {
-                if (!string.IsNullOrEmpty(plEngineResult.Item))
-                {
-                    Item_Wait(plEngineResult.Item);
-                    return;
-                }
-
-                if (!string.IsNullOrEmpty(plEngineResult.JobAbility))
-                {
-                    if (plEngineResult.JobAbility == Ability.Devotion)
-                    {
-                        PL.ThirdParty.SendString($"/ja \"{Ability.Devotion}\" {plEngineResult.Target}");
-                    }
-                    else
-                    {
-                        JobAbility_Wait(plEngineResult.Message, plEngineResult.JobAbility);
-                    }
-                    return;
-                }
-
-                if (!string.IsNullOrEmpty(plEngineResult.Spell))
-                {
-                    var target = string.IsNullOrEmpty(plEngineResult.Target) ? "<me>" : plEngineResult.Target;
-                    CastSpell(target, plEngineResult.Spell);
-                    return;
-                }
-            }
-
-            // Auto Casting BUFF STUFF
-
-            var buffConfig = Config.InvokeRequired ? (BuffConfig)Config.Invoke(new Func<BuffConfig>(() => Config.GetBuffConfig())) : Config.GetBuffConfig();
-            var buffAction = BuffEngine.Run(buffConfig, ActiveBuffs);
-
-            if (buffAction != null)
-            {
-                if (!string.IsNullOrEmpty(buffAction.Error))
-                {
-                    showErrorMessage(buffAction.Error);
-                }
-                else
-                {
-                    if (!string.IsNullOrEmpty(buffAction.JobAbility))
-                    {
-                        JobAbility_Wait(buffAction.JobAbility, buffAction.JobAbility);
-                    }
-
-                    if (!string.IsNullOrEmpty(buffAction.Spell))
-                    {
-                        CastSpell(buffAction.Target, buffAction.Spell);
-                    }
-                }
-
-                return;
+                ExecuteEngineAction(bestAction);
             }
 
             // BARD SONGS

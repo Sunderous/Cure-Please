@@ -192,8 +192,8 @@ namespace CurePlease.Model
         // in a generic way later.
         public static Dictionary<short, string> DebuffPriorities = new Dictionary<short, string>
         {
-            { (short)StatusEffect.Charm1, Spells.Foe_Lullaby_II },
-            { (short)StatusEffect.Charm2, Spells.Foe_Lullaby_II },
+            { (short)StatusEffect.Charm1, Spells.Sleep },
+            { (short)StatusEffect.Charm2, Spells.Sleep },
             { (short)StatusEffect.Doom, Spells.Cursna },
             { (short)StatusEffect.Sleep, Spells.Curaga },
             { (short)StatusEffect.Sleep2, Spells.Curaga },

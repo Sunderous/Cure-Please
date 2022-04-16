@@ -21,6 +21,8 @@ namespace CurePlease.Engine
 
         private IEnumerable<short> localBuffs;
 
+        private const int defaultPriority = 6;
+
         public PLEngine(EliteAPI pl, EliteAPI mon)
         {
             PL = pl;
@@ -29,7 +31,8 @@ namespace CurePlease.Engine
 
         public EngineAction Run(PLConfig Config, IEnumerable<short> playerBuffs)
         {
-            localBuffs = playerBuffs ?? new List<short>();
+            //localBuffs = playerBuffs ?? new List<short>();
+            localBuffs = PL.Player.Buffs;
 
             // FIRST IF YOU ARE SILENCED OR DOOMED ATTEMPT REMOVAL NOW
             if (HasStatus(StatusEffect.Silence) && Config.PLSilenceItemEnabled)
@@ -41,6 +44,7 @@ namespace CurePlease.Engine
                 {
                     return new EngineAction
                     {
+                        Priority = defaultPriority,
                         Item = plSilenceItem
                     };
                 }
@@ -55,6 +59,7 @@ namespace CurePlease.Engine
                 {
                     return new EngineAction
                     {
+                        Priority = defaultPriority,
                         Item = plDoomItem
                     };
                 }
@@ -64,6 +69,7 @@ namespace CurePlease.Engine
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     Target = Target.Me,
                     JobAbility = Ability.DivineSeal
                 };
@@ -72,6 +78,7 @@ namespace CurePlease.Engine
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     Target = Target.Me,
                     JobAbility = Ability.Convert
                 };
@@ -109,6 +116,7 @@ namespace CurePlease.Engine
 
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     CustomAction = "/heal"
                 };
             }
@@ -123,24 +131,26 @@ namespace CurePlease.Engine
 
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     CustomAction = "/heal"
                 };
             }
 
             if (Config.AfflatusSolaceEnabled && (!HasStatus(StatusEffect.Afflatus_Solace)) && PL.AbilityAvailable(Ability.AfflatusSolace))
             {
-                return new EngineAction { JobAbility = Ability.AfflatusSolace };
+                return new EngineAction { Priority = defaultPriority, JobAbility = Ability.AfflatusSolace };
             }
             
             if (Config.AfflatusMiseryEnabled && (!HasStatus(StatusEffect.Afflatus_Misery)) && PL.AbilityAvailable(Ability.AfflatusMisery))
             {
-                return new EngineAction { JobAbility = Ability.AfflatusMisery };
+                return new EngineAction { Priority = defaultPriority, JobAbility = Ability.AfflatusMisery };
             }                          
             
             if (Config.Composure && (!HasStatus(StatusEffect.Composure)) && PL.AbilityAvailable(Ability.Composure))
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     JobAbility = Ability.Composure
                 };
             }
@@ -149,6 +159,7 @@ namespace CurePlease.Engine
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     JobAbility = Ability.LightArts
                 };
             }
@@ -157,6 +168,7 @@ namespace CurePlease.Engine
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     JobAbility = Ability.AddendumWhite
                 };
             }
@@ -165,6 +177,7 @@ namespace CurePlease.Engine
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     JobAbility = Ability.DarkArts
                 };
             }
@@ -173,22 +186,23 @@ namespace CurePlease.Engine
             {
                 return new EngineAction
                 {
+                    Priority = defaultPriority,
                     JobAbility = Ability.AddendumBlack
                 };
             }
             if (Config.SublimationEnabled && (!HasStatus(StatusEffect.Sublimation_Activated)) && (!HasStatus(StatusEffect.Sublimation_Complete)) && (!HasStatus(StatusEffect.Refresh)) && PL.AbilityAvailable(Ability.Sublimation))
             {
-                return new EngineAction { JobAbility = Ability.Sublimation };
+                return new EngineAction { Priority = defaultPriority, JobAbility = Ability.Sublimation };
             }
 
             if (Config.SublimationEnabled && ((PL.Player.MPMax - PL.Player.MP) > Config.SublimationMPLossThreshold) && HasStatus(StatusEffect.Sublimation_Complete) && PL.AbilityAvailable(Ability.Sublimation))
             {
-                return new EngineAction { JobAbility = Ability.Sublimation };
+                return new EngineAction { Priority = defaultPriority, JobAbility = Ability.Sublimation };
             }
 
             if (Config.DivineCaressEnabled && Config.DebuffsEnabled && PL.AbilityAvailable(Ability.DivineCaress))
             {
-                return new EngineAction { JobAbility = Ability.DivineCaress };
+                return new EngineAction { Priority = defaultPriority, JobAbility = Ability.DivineCaress };
             }
             
             if (Config.DevotionEnabled && PL.AbilityAvailable(Ability.Devotion) && PL.Player.HPP > 80 && (!Config.DevotionWhenEngaged || (Monitored.Player.Status == 1)))
@@ -211,6 +225,7 @@ namespace CurePlease.Engine
                 {
                     return new EngineAction
                     {
+                        Priority = defaultPriority,
                         Target = devotionTarget.Name,
                         JobAbility = Ability.Devotion
                     };
@@ -224,6 +239,7 @@ namespace CurePlease.Engine
                 {
                     return new EngineAction
                     {
+                        Priority = defaultPriority,
                         Spell = shellraSpell
                     };
                 }
@@ -234,7 +250,7 @@ namespace CurePlease.Engine
                 var protectraSpell = Data.ProtectraTiers[Config.ProtectraLevel - 1];
                 if (PL.SpellAvailable(protectraSpell))
                 {
-                    return new EngineAction { Spell = protectraSpell };
+                    return new EngineAction { Priority = defaultPriority, Spell = protectraSpell };
                 }
             }
             
@@ -244,6 +260,7 @@ namespace CurePlease.Engine
                 // an action that says: Do Accession + Perpetuance + Barspell.
                 var result = new EngineAction
                 {
+                    Priority = defaultPriority,
                     Spell = Config.BarElementSpell
                 };
 
@@ -263,6 +280,7 @@ namespace CurePlease.Engine
             {
                 var result = new EngineAction
                 {
+                    Priority = defaultPriority,
                     Spell = Config.BarStatusSpell
                 };
 
@@ -280,12 +298,12 @@ namespace CurePlease.Engine
             
             if (Config.GainBoostSpellEnabled && !HasStatus(Data.SpellEffects[Config.GainBoostSpell]) && PL.SpellAvailable(Config.GainBoostSpell))
             {
-                return new EngineAction { Spell = Config.GainBoostSpell };
+                return new EngineAction { Priority = defaultPriority, Spell = Config.GainBoostSpell };
             }
             
             if (Config.StormSpellEnabled && !HasStatus(Data.SpellEffects[Config.StormSpell]) && PL.SpellAvailable(Config.StormSpell))
             {
-                var result = new EngineAction { Spell = Config.StormSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.StormSpell };
                 if (Config.AccessionEnabled && Config.StormspellAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
                     result.JobAbility = Ability.Accession;
@@ -300,7 +318,7 @@ namespace CurePlease.Engine
             
             if (Config.ProtectEnabled && (!HasStatus(StatusEffect.Protect)))
             {
-                var result = new EngineAction { Spell = Config.ProtectSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.ProtectSpell };
 
                 if (Config.AccessionEnabled&& Config.AccessionProtectShell && PL.Party.GetPartyMembers().Count() > 2 && PL.AbilityAvailable(Ability.Accession) && PL.CurrentSCHCharges() > 0)
                 {
@@ -315,7 +333,7 @@ namespace CurePlease.Engine
             
             if (Config.ShellEnabled && (!HasStatus(StatusEffect.Shell)))
             {
-                var result = new EngineAction { Spell = Config.ShellSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.ShellSpell };
 
                 if (Config.AccessionEnabled && Config.AccessionProtectShell && PL.Party.GetPartyMembers().Count() > 2 && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession))
                 {
@@ -330,7 +348,7 @@ namespace CurePlease.Engine
             
             if (Config.ReraiseEnabled && (!HasStatus(StatusEffect.Reraise)))
             {
-                var result = new EngineAction { Spell = Config.ReraiseSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.ReraiseSpell };
 
                 if(Config.EnlightenmentReraise && !HasStatus(StatusEffect.Addendum_White) && PL.AbilityAvailable(Ability.Enlightenment))
                 {
@@ -346,18 +364,18 @@ namespace CurePlease.Engine
                 {
                     if (PL.SpellAvailable(Spells.Utsusemi_Ni) )
                     {
-                        return new EngineAction { Spell = Spells.Utsusemi_Ni };
+                        return new EngineAction { Priority = defaultPriority, Spell = Spells.Utsusemi_Ni };
                     }
                     else if (PL.SpellAvailable(Spells.Utsusemi_Ichi) && (PL.ShadowsRemaining() == 0))
                     {
-                        return new EngineAction { Spell = Spells.Utsusemi_Ichi };
+                        return new EngineAction { Priority = defaultPriority, Spell = Spells.Utsusemi_Ichi };
                     }
                 }             
             }
             
             if (Config.BlinkEnabled && (!HasStatus(StatusEffect.Blink)) && PL.SpellAvailable(Spells.Blink))
             {
-                var result = new EngineAction { Spell = Spells.Blink };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Spells.Blink };
 
                 if (Config.AccessionEnabled && Config.BlinkAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -373,7 +391,7 @@ namespace CurePlease.Engine
             
             if (Config.PhalanxEnabled && (!HasStatus(StatusEffect.Phalanx)) && PL.SpellAvailable(Spells.Phalanx))
             {
-                var result = new EngineAction { Spell = Spells.Phalanx };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Spells.Phalanx };
 
                 if (Config.AccessionEnabled && Config.PhalanxAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -389,7 +407,7 @@ namespace CurePlease.Engine
             
             if (Config.RefreshEnabled && (!HasStatus(StatusEffect.Refresh)))
             {
-                var result = new EngineAction { Spell = Config.RefreshSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.RefreshSpell };
 
                 if (Config.AccessionEnabled && Config.RefreshAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -405,7 +423,7 @@ namespace CurePlease.Engine
             
             if (Config.RegenEnabled && (!HasStatus(StatusEffect.Regen)))
             {
-                var result = new EngineAction { Spell = Config.RegenSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.RegenSpell };
 
                 if (Config.AccessionEnabled && Config.RegenAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -421,7 +439,7 @@ namespace CurePlease.Engine
             
             if (Config.AdloquiumEnabled && (!HasStatus(StatusEffect.Regain)) && PL.SpellAvailable(Spells.Adloquium))
             {
-                var result = new EngineAction { Spell = Spells.Adloquium };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Spells.Adloquium };
 
                 if (Config.AccessionEnabled && Config.AdloquiumAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -437,7 +455,7 @@ namespace CurePlease.Engine
             
             if (Config.StoneskinEnabled && (!HasStatus(StatusEffect.Stoneskin)) && PL.SpellAvailable(Spells.Stoneskin))
             {
-                var result = new EngineAction { Spell = Spells.Stoneskin };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Spells.Stoneskin };
 
                 if (Config.AccessionEnabled && Config.StoneskinAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -453,7 +471,7 @@ namespace CurePlease.Engine
             
             if (Config.AquaveilEnabled && (!HasStatus(StatusEffect.Aquaveil)) && PL.SpellAvailable(Spells.Aquaveil))
             {
-                var result = new EngineAction { Spell = Spells.Aquaveil };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Spells.Aquaveil };
 
                 if (Config.AccessionEnabled && Config.AquaveilAccession && PL.CurrentSCHCharges() > 0 && PL.AbilityAvailable(Ability.Accession) && !HasStatus(StatusEffect.Accession))
                 {
@@ -469,27 +487,27 @@ namespace CurePlease.Engine
             
             if (Config.KlimaformEnabled && !HasStatus(StatusEffect.Klimaform))
             {
-                return new EngineAction { Spell = Spells.Klimaform };
+                return new EngineAction { Priority = defaultPriority, Spell = Spells.Klimaform };
             }
             
             if (Config.TemperEnabled && (!HasStatus(StatusEffect.Multi_Strikes)))
             {
-                return new EngineAction { Spell = Config.TemperSpell };
+                return new EngineAction { Priority = defaultPriority, Spell = Config.TemperSpell };
             }
             
             if (Config.HasteEnabled && (!HasStatus(StatusEffect.Haste)))
             {
-                return new EngineAction { Spell = Config.HasteSpell };
+                return new EngineAction { Priority = defaultPriority, Spell = Config.HasteSpell };
             }
             
             if (Config.SpikesEnabled && !HasStatus(Data.SpellEffects[Config.SpikesSpell]))
             {
-                return new EngineAction { Spell = Config.SpikesSpell };
+                return new EngineAction { Priority = defaultPriority, Spell = Config.SpikesSpell };
             }
             
             if (Config.EnSpellEnabled && !HasStatus(Data.SpellEffects[Config.EnSpell]) && PL.SpellAvailable(Config.EnSpell))
             {
-                var result = new EngineAction { Spell = Config.EnSpell };
+                var result = new EngineAction { Priority = defaultPriority, Spell = Config.EnSpell };
 
                 // Don't want to try and accession/perpetuance tier II.
                 if(!Config.EnSpell.Contains("II"))
@@ -509,7 +527,7 @@ namespace CurePlease.Engine
             
             if (Config.AuspiceEnabled && (!HasStatus(StatusEffect.Auspice)) && PL.SpellAvailable(Spells.Auspice))
             {
-                return new EngineAction { Spell = Spells.Auspice };
+                return new EngineAction { Priority = defaultPriority, Spell = Spells.Auspice };
             }
 
             // TODO: Rethink this whole logic.
@@ -528,6 +546,7 @@ namespace CurePlease.Engine
 
                         return new EngineAction
                         {
+                            Priority = defaultPriority,
                             Target = Config.AutoTargetTarget,
                             Spell = Config.AutoTargetSpell
                         };
@@ -546,6 +565,7 @@ namespace CurePlease.Engine
 
                         return new EngineAction
                         {
+                            Priority = defaultPriority,
                             Target = "<t>",
                             Spell = Config.AutoTargetSpell
                         };

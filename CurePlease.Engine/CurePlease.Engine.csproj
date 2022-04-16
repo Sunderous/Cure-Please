@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EEngineType.cs" />
     <Compile Include="CureEngine.cs" />
     <Compile Include="DebuffEngine.cs" />
     <Compile Include="BuffEngine.cs" />

@@ -16,6 +16,8 @@ namespace CurePlease.Engine
         private EliteAPI PL { get; set; }
         private EliteAPI Monitored { get; set; }
 
+        private const int defaultPriority = 2;
+
         public CureEngine(EliteAPI pl, EliteAPI mon)
         {
             PL = pl;
@@ -179,6 +181,7 @@ namespace CurePlease.Engine
         {
             var actionResult = new EngineAction
             {
+                Priority = defaultPriority,
                 Target = partyMember.Name
             };
 
@@ -205,6 +208,7 @@ namespace CurePlease.Engine
 
             var actionResult = new EngineAction
             {
+                Priority = defaultPriority,
                 Target = member.Name
             };
 
